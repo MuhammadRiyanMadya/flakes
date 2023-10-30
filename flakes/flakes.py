@@ -165,48 +165,38 @@ The time period must be defined first")
         
         return df_np
     
-    def foptd_solver(self,x):
-        
-        Kp = self.prm0[0]
-        taup = self.prm0[1]
-        thetap = self.prm0[2]
-        yt = np.zeros(self.t)
-        yt[0] = 0 #vt[0]
+    def foptd_solver(self, prm):
+        Kp = prm[0]
+        taup = prm[1]
+        thetap = prm[2]
+        yt = np.zeros(len(self.t))
+        yt[0] = self.pv[0] #vt[0]
         uf = interpolate.interp1d(self.t,self.u)
         
-        for i in range(self.t-1):
+        for i in range(len(self.t)-1):
             tstep = [self.t[i], self.t[i+1]]
             y = integrate.odeint(self.__model,yt[i],tstep,args=(uf,Kp,taup,thetap))
             yt[i+1] = y[-1]
-            yt[self.t-1] = yt[self.t-2]    
+            yt[len(self.t)-1] = yt[len(self.t)-2]    
         return yt
     
-    def objective(self, name, prm: list):
-        
-        if name == 'foptd':
-            yt = self.tfoptd_solver(prm)
-            SSE = 0
-            for i in range(len(self.t)):
-                SSE = SSE + (self.pv[i] - yt[i])**2
-        if name == 'soptd':
-            yt = self.foptd_solver(prm)
-            SSE = 0
-            for i in range(self.t):
-                SSE = SSE + (self.pv[i] - yt[i])**2
+    def objective(self, prm):
+        yt = self.foptd_solver(prm)
+        SSE = 0
+        for i in range(len(self.t)):
+            SSE = SSE + (self.pv[i] - yt[i])**2
         return SSE
     
-    def fit(self, eq_name:str , opt_direction_):
-        try:
-            from scipy.optimize import opt_direction_
-        except:
-            print("The optimization objective is not supported")
-            
-        solution = opt_direction_(self.objective(eq_name,self.prm0))
-        prm = solution.prm
-        yt = self.foptd_solver(prm)
-        SSE = self.objective(eq_name,prm)
-        
-        return prm, yt, SSE
+    def fit(self, eq_name:str , opt_direction: str):
+        prm0 = [3, 9, 0]
+        if eq_name == 'foptd':
+            solution = optimize.minimize(self.objective, prm0 )
+            self.prm = solution.x
+            if x[2] < 0:
+                x[2] = 0
+            #yt = self.foptd_solver(prm)
+            #SSE = self.objective(eq_name,prm)
+        return self.prm
 
 #test file
 lc = flakes()
@@ -216,3 +206,8 @@ lc.file('Stepdata_process_2.xlsx', bottom_row = 102)
 #test response
 steamer = flakes()
 steamer.response(100,{20:30}, 1, 1)
+
+#test 
+#lc = flakes()
+#lc.file('Stepdata_process_2.xlsx', bottom_row = 102)
+#prm = lc.fit('foptd')
