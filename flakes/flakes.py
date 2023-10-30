@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 31 00:16:56 2023
+
+@author: ssv
+"""
+
 #! usr/bin/env python3
 
 """Module flakes: Emerging process control technology"""
@@ -85,7 +92,10 @@ The time period must be defined first")
 
         del self.pv[0]
         dt = [self.t, self.u, self.pv]
-
+        df = pd.DataFrame(dt)
+        df = df.transpose()
+        df.to_excel('Stepdata_process_2.xlsx',index = False, header = ['Time','Input','Output'])
+        
         return dt
 
     def graph(self,data, show = True ):
@@ -97,63 +107,61 @@ The time period must be defined first")
                     
     def file(self,
              title,
-             sheet,
-             column,
              bottom_row,
-             show: bool = True,
+             sheet = 'Sheet1',
+             column = 'A:C',
+             show: bool = False,
              hdr = 0
              ):
         
         df = pd.read_excel(title, sheet_name = sheet, usecols = column, header = hdr)
         df_np = df.values[:int(bottom_row)]
-        self.t = df_np[:,0]
-        self.u = df_np[:,1]
-        self.pv = df_np[:,2]
+        self.t = df_np[:,0].tolist()
+        self.u = df_np[:,1].tolist()
+        self.pv = df_np[:,2].tolist()
         data = [self.t, self.u, self.pv]
-        
         uf = interpolate.interp1d(self.pv, self.t)
         
         op_min = min(self.u)
         op_max = max(self.u)
         op_range = op_max - op_min
         delta_op = []
-        
         for i in range(1,len(self.u)):
             delta_op.append(self.u[-i] - self.u[-i-1])
-        
         delta_op_max = max(delta_op)
         step_index = len(self.u) - 1 - delta_op.index(delta_op_max) - 1
         
         pv_min = min(self.pv)
         pv_max = max(self.pv)
         pv_range = pv_max - pv_min
-        
         pv_avg_bef = sum(self.pv[:step_index+1]) / len(self.pv[:step_index+1])
-        if pv_avg_bef != self.pv[step_index] - self.pv[step_index-1]:
+        if abs(pv_avg_bef - (self.pv[step_index] - self.pv[step_index-1])) > 0.1*pv_range:
             print("Warning: The step data may not be free of disturbances")
             
         Kp0 = pv_range/op_range
         
-        for i in self.pv:
-            if i != self.pv(step_index):
-                thetap_index = self.pv.index(i)
+        for i in range(len(self.pv)):
+            if i == len(self.pv)-1:
+                break
+            elif abs(self.pv[i+1] - self.pv[i]) > pv_avg_bef:
+                thetap_index = i + 1
+                break
+    
+        thetap0 = self.t[thetap_index]-self.t[step_index + 1]
+        if thetap0 < 0:
+            thetap0 = 0
         
-        thetap0 = self.t[thetap_index]
-        
-        t_63 = uf(self.pv[step_index] + 0.63*Kp0)
-        
+        t_63 = uf(self.pv[thetap_index] + 0.63*Kp0*op_range)
         for i in self.t:
             if i > t_63:
                 t_63 = i
                 break
-        taup0 = t_63 - thetap0
+        taup0 = t_63 - self.t[thetap_index]
         
         self.prm0 = [Kp0, taup0, thetap0]
         
-        
         if show == True:
             self.graph([data[0], data[1]])
-            self.graph([data[0], data[2]])
         
         return df_np
     
@@ -199,8 +207,12 @@ The time period must be defined first")
         SSE = self.objective(eq_name,prm)
         
         return prm, yt, SSE
+
+#test file
+lc = flakes()
+lc.file('Stepdata_process_2.xlsx', bottom_row = 102)
     
 
-#test
+#test response
 steamer = flakes()
 steamer.response(100,{20:30}, 1, 1)
