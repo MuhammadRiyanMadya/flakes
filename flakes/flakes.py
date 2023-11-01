@@ -13,6 +13,7 @@ from scipy import integrate, interpolate
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from scipy import optimize
 
 class flakes():
     def __init__(self):
@@ -176,7 +177,7 @@ The time period must be defined first")
         for i in range(len(self.t)-1):
             tstep = [self.t[i], self.t[i+1]]
             y = integrate.odeint(self.__model,yt[i],tstep,args=(uf,Kp,taup,thetap))
-            yt[i+1] = y[-1]
+            yt[i+1] = y[1,0]
             yt[len(self.t)-1] = yt[len(self.t)-2]    
         return yt
     
@@ -187,27 +188,39 @@ The time period must be defined first")
             SSE = SSE + (self.pv[i] - yt[i])**2
         return SSE
     
-    def fit(self, eq_name:str , opt_direction: str):
-        prm0 = [3, 9, 0]
+    def fit(self, eq_name:str):
+        prm0 = self.prm0
         if eq_name == 'foptd':
             solution = optimize.minimize(self.objective, prm0 )
             self.prm = solution.x
-            if x[2] < 0:
-                x[2] = 0
+            if self.prm[2] < 0:
+                self.prm[2] = 0
             #yt = self.foptd_solver(prm)
             #SSE = self.objective(eq_name,prm)
         return self.prm
 
-#test file
-lc = flakes()
-lc.file('Stepdata_process_2.xlsx', bottom_row = 102)
-    
 
-#test response
+# test response generator
 steamer = flakes()
-steamer.response(100,{20:30}, 1, 1)
+steamer.response(100,{5:2, 10:1,14:3,20:30,25:29,26:28,30:31}, 4.5, 4, thetap = 10)
 
-#test 
-#lc = flakes()
-#lc.file('Stepdata_process_2.xlsx', bottom_row = 102)
-#prm = lc.fit('foptd')
+print(steamer.u)
+print(steamer.pv)
+            
+
+##            
+# test fitting
+levelctrl = flakes()
+levelctrl.file('Stepdata_process_2.xlsx', bottom_row = 102)
+prm = levelctrl.fit('foptd')        
+        
+# test helper    
+pv = levelctrl.foptd_solver(levelctrl.prm)
+pv2 = levelctrl.foptd_solver(levelctrl.prm0)
+
+plt.figure(1)
+plt.plot(levelctrl.t, pv,'r*')
+plt.plot(levelctrl.t, pv2,'b-')  
+plt.plot(levelctrl.t, levelctrl.pv,'y-')
+plt.plot(levelctrl.t, steamer.pv,'k-')         
+plt.show()
