@@ -1,0 +1,52 @@
+class RegControl:
+    def __init__(self,
+                 SP,
+                 PV,
+                 OP,
+                 Mode   = 'Auto',
+                 K      = 1,
+                 T1     = 0,
+                 T2     = 0,
+                 Native = 'Direct',
+                 Arwnet = 'Active',
+                 op_hi  = 100,
+                 op_lo  = 0,
+                 cv_hi  = 100,
+                 cv_lo  = 0,
+                 sp_hi  = 0,
+                 sp_lo  = 0,
+                 
+                 ):
+        self.K = K
+        self.T1 = T1
+        self.T2 = T2
+        self.SP = SP
+        self.PV = PV
+    def pid(SP, PV):
+        ie0 = 0
+        error = SP - PV
+        P = self.K*error
+        ie = ie0 + error*dt
+        I = (self.K/self.T1)*ie
+        op = ubias + P + I
+        if Arwnet = 'Active':
+            op = 
+        return OP
+    def cascade():
+        OP = self.pid(SP,PV)
+        SP2 = OP*...
+        OP = self.pid(SP2,PV2
+    
+class cascade(RegControl):
+    def super.__init__(self):
+    def cascade(
+
+
+##LevelController = RegControl(1,2,2)
+##TankModel = Model()
+##for i in range(.....:           
+##    SP = SP[i]
+##    PV = PV0
+##    OP = LC.pid(SP - PV)
+##    PV = TankModel.TankLevel(OP)
+    
