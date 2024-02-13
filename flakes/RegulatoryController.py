@@ -11,31 +11,23 @@ class RegControl:
                  cv_hi  = 100,
                  cv_lo  = 0,
                  sp_hi  = 0,
-                 sp_lo  = 0,
-                 
+                 sp_lo  = 0                 
                  ):
-
         self.K = K
         self.T1 = T1
         self.T2 = T2
-        self.SP = SP
-        self.PV = PV
-    def pid(SP, PV):
+    def pid(self,SP, PV):
         ie0 = 0
         error = SP - PV
         P = self.K*error
         ie = ie0 + error*dt
         I = (self.K/self.T1)*ie
         op = ubias + P + I
-        #if Arwnet = 'Active':
-        #    op = 
-        #return OP
-    #def cascade():
-        #OP = self.pid(SP,PV)
-        #SP2 = OP*...
-        #OP = self.pid(SP2,PV2
-
+        return op
+    
+# Note: class instantiated by giving PID tuning constants
 LevelController = RegControl(K = 1,T1 = 2,T2 = 2)
+print(LevelController.pid(1,0))
 
 def level_dynamic(h,t,OP):
     A = 2
@@ -43,33 +35,31 @@ def level_dynamic(h,t,OP):
     dhdt = (1/Rv*OP - h)/(A/Rv)
     return dhdt
 
-t_start = 0
-t_end = 100
+### time frame
+##t_start = 0
+##t_end = 100
+##t = np.linspace(0,t_end,t_end+1)
+##delta_t = t[1]-t[0]
+### initial conditions
+##PV0 = 20 
+##OP0 = 10
+### variable frame
+##SP = np.ones(t_end+1)*20
+##SP[30:60] = 15
+##SP[60:] = 25
+##PV = np.empty(t_end+1)
+##PV[0] = PV0
+##OP = np.empty(t_end+1)
+##OP[0] = OP0
+##error = np.ones(t_end+1)
+##P = np.empty(t_end+1)
+##I = np.zeros(t_end+1)
+##I[0] = 0
 
-t = np.linspace(0,t_end-1,t_end)
-delta_t = t[1]-t[0]
+# check the frame
 
-Kc = 1.7
-Tc = 4 
-
-PV0 = 20 
-OP0 = 10
-SP = np.ones(t_end)*20
-SP[30:60] = 15
-SP[60:] = 25
-PV = np.empty(t_end)
-P = np.empty(t_end)
-
-OP = np.empty(t_end)
-OP[0] = OP0
-PV[0] = PV0
-error = np.ones(t_end)
-
-I = np.zeros(number_element)
-I[0] = 0
-
-for i in range(0,t_end-1)
-    SP = SP[i]
-    PV = PV[i]
-    OP = LevelController.pid(SP,PV)
-    PV[i+1] = LevelDynamicModel.firstorder(OP)
+##for i in range(0,t_end-1)
+##    SP = SP[i]
+##    PV = PV[i]
+##    OP = LevelController.pid(SP,PV)
+##    PV[i+1] = LevelDynamicModel.firstorder(OP)
