@@ -8,8 +8,11 @@ A control system package designed to automatically identify system characteristi
 <img src="https://github.com/MuhammadRiyanMadya/flakes/blob/main/pic/Figure_1.png">
 </p>
 <p align="justify">
-The most popular source of data is Excel. This package could extract data from Excel directly. In this demo,the file is 
-  [Stepdata_process_2](https://github.com/MuhammadRiyanMadya/flakes/blob/main/pic/Stepdata_process_2.png/) containing step test data of a controller in a chemical plant. This step test data has to be analyzed to get the process gain, process time, and time delay or dead time. These parameters can be quickly identified using this Python package.
+The most popular source of data is Excel. This package could extract data from Excel directly. In this demo, the file is
+  
+[Stepdata_process_2](https://github.com/MuhammadRiyanMadya/flakes/blob/main/pic/Stepdata_process_2.xlsx)
+  
+containing step test data of a controller in a chemical plant. This step test data has to be analyzed to get the process gain, process time, and time delay or dead time. These parameters can be quickly identified using this Python package.
 </p>
 <p align="center">
 <img src="https://github.com/MuhammadRiyanMadya/flakes/blob/main/pic/Figure_2.png">
