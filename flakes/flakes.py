@@ -245,3 +245,45 @@ ax.text(-1.9,94,f'Time Delay: {prm[2]}')
 ax.set_title('System Modeler')
 ax.legend()
 plt.show()
+
+import time
+
+# PV capturer
+
+PV = []                         #array of size 2
+sample_time = time.sleep(1)
+delt = sample_time
+
+# PID
+def PID (
+        SP, 
+        PV, 
+        Kc, 
+        T1, 
+        T2, 
+        op_hi   = 100,
+        op_lo   = 0,
+        ):
+    error = SP - PV
+    dpv = (PV[1] - PV[0])/delt
+    ioe = ioe + error*delt
+    op = Kc*error + Kc/T1*ioe - Kc*T2*dpv
+    # anti-reset windup protection
+    if op > op_hi:
+        op = op_hi
+        ioe = ioe - error*delt
+    elif op < op_lo:
+        op = op_lo
+        ioe = ioe - error*delt
+    return op
+
+'''
+while mode != False:
+    PV = T1.lab........
+    
+    
+    PID contrller routine
+    
+    time.sleep(sample_time)
+    
+'''
