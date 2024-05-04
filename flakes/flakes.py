@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from scipy import optimize
+from datetime import datetime
+import time
 
 class flakes():
     def __init__(self):
@@ -199,40 +201,50 @@ The time period must be defined first")
             #SSE = self.objective(eq_name,prm)
         return self.prm
 
-PV = []                         #array of size 2
-sample_time = time.sleep(1)
-delt = sample_time
-
-# PID
-def PID (
-        SP, 
-        PV, 
-        Kc, 
-        T1, 
-        T2, 
-        op_hi   = 100,
-        op_lo   = 0,
-        ):
-    error = SP - PV
-    dpv = (PV[1] - PV[0])/delt
-    ioe = ioe + error*delt
-    op = Kc*error + Kc/T1*ioe - Kc*T2*dpv
-    # anti-reset windup protection
-    if op > op_hi:
-        op = op_hi
-        ioe = ioe - error*delt
-    elif op < op_lo:
-        op = op_lo
-        ioe = ioe - error*delt
-    return op
-
-'''
-while mode != False:
-    PV = T1.lab........
+class standard(flakes):
+    __counter = 0
     
-    
-    PID contrller routine
-    
-    time.sleep(sample_time)
-    
-'''
+    def __init__(self):
+        super().__init__()
+        standard.__counter   += 1
+        self.SP_storage       = []
+        self.PV_storage       = []
+        self.sample_time      = None
+        
+    def pid_config(self, SP, PV, sample_time = 1, archive = True):
+        if archive == True:
+            self.sample_time = sample_time
+            _time_point = datetime.now()
+            self.t.append(_time_point)
+            self.SP_storage.append(SP)
+            self.PV_storage(PV)
+            time.sleep(sample_time)
+    def pid (
+            self,
+            SP,     
+            PV, 
+            Kc, 
+            T1, 
+            T2, 
+            op_hi   = 100,
+            op_lo   = 0,
+            ):
+        PV_array = np.mpy
+        PV_array[1] = PV
+        error = SP - PV
+        dpv = (PV[1] - PV[0])/self.sample_time
+        ioe = 0
+        ioe = ioe + error*self.sample_time
+        op = Kc*error + Kc/T1*ioe - Kc*T2*dpv
+        # anti-reset windup protection
+        if op > op_hi:
+            op = op_hi
+            ioe = ioe - error*self.sample_time
+        elif op < op_lo:
+            op = op_lo
+            ioe = ioe - error*self.sample_time
+        return op
+    def mode(self, mode):
+        if mode == 'auto':
+            auto_start_time = datetime.now()
+            while mode == 'auto':
