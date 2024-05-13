@@ -25,3 +25,20 @@ def Debugging(args: list):
             print(e)
         print("=========================================================================")
     return
+    
+def find(path, fileName,):
+    for file in os.listdir(path):
+        try:
+            if file == fileName:
+                os.chdir(path + '\\' + file)
+                print('+-> ' + os.getcwd())
+            elif '.' not in file:
+                find(path + '\\' + file,fileName)
+            elif '.' in file:
+                continue
+            else:
+                break
+        except:
+            print('+-> ' + folder + ' NOT allow to be searched')
+            continue
+    return
