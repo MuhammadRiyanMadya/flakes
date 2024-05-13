@@ -248,3 +248,27 @@ class standard(flakes):
         if mode == 'auto':
             auto_start_time = datetime.now()
             while mode == 'auto':
+                
+classs predictiveControl():
+def objective(j):
+    for k in range(1,2*P+1):
+        if k==1:
+            z0 = y[i-P]
+        if k<=P:
+            if i-P+k<0:
+                j[k] = 0
+            else:
+                j[k] = u[i-P+k]
+        elif k>P+M:
+            j[k] = j[P+M]
+        timeProgram = [deltaTimeProgram*(k-1),deltaTimeProgram*(k)]        
+        z_out = odeint(processModel,z0,timeProgram,args=(j[k],K,tau))
+        z0 = z_out[-1]
+        z[k] = z_out[0]
+        SetpointProgram[k] = sp[i]
+        deltaj = np.zeros(2*P+1)        
+        if k>P:
+            deltaj[k] = j[k]-j[k-1]
+            se[k] = (SetpointProgram[k]-z[k])**2 + 20 * (j[k])**2
+    obj = np.sum(se[P+1:])
+    return obj
