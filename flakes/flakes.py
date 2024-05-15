@@ -244,11 +244,19 @@ class standard(flakes):
             op = op_lo
             ioe = ioe - error*self.sample_time
         return op
-    def mode(self, mode):
-        if mode == 'auto':
-            auto_start_time = datetime.now()
-            while mode == 'auto':
-                
+    def nodeConnect(self, connect: bool):
+        try:
+            if connect == True:
+                while True:
+                    self.pid_config(self.SP_storage, self.PV_storage, self.sample_time)
+        except KeyboardInterrupt:
+            connect = False
+            
+##    def mode(self, mode: str)
+##        if mode == 'auto':
+##            auto_start_time = datetime.now()
+##            while mode == 'auto':
+         
 classs predictiveControl():
 def objective(j):
     for k in range(1,2*P+1):
