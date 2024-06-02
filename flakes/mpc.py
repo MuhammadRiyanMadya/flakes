@@ -29,17 +29,20 @@ def __timeRoot(n):
 # test
 ##print(__timeRoot(0))  
 
-def timeMaker(i, cont = False, tr = 6):
-    timeNode = timeRoot(tr)
+def timeMaker(i, cont = False, collocNodes = 4, timeStart = 0):
+    timeNode = __timeRoot(collocNodes)
     if cont:
-        Ns = np.array([])
+        Ns = np.array([timeStart])
         for n in range(i):
-            Ns = np.append(Ns,timeNode+n)
+            Ns = np.append(Ns,timeNode[1:]+n)
         return Ns
-    return timeNode+i
+    return timeNode+i-1
 
 # test 1
-##print(timeMaker(4,cont = True))
+##res = timeMaker(2, cont=True)
+##print(res)
+##res = timeMaker(2)
+##print(res)
 
 def __colloc(n):
     if (n==4):
@@ -64,7 +67,11 @@ def __colloc(n):
 # test 2
 ##print(__colloc(6))
 
-def __myFunction(z):
+def __funRoot(z, *param):
+    tau = param[0]
+    Kp = param[1]
+    u = param[2]
+    
     y0 = 5
     N  = __colloc(4)
     y  = z[0:3]
@@ -72,21 +79,67 @@ def __myFunction(z):
 
     F = np.empty(6)
     F[0:3] = np.dot(N,dy) - (y-y0)
-    F[3:7] = dy + y
+    F[3:6] = tau*dy + y - Kp*u
     return F
 
-def CLCmethod(period, y0, n):
+def __funFOST(z, *param):
+    n = param[0]
+    m = (n-1)*2
+    y = z[0:n-1]
+    dy = z[n-1:m]
+
+    y0 = 0
+    u = 4.0
+    N = __colloc(n)
+
+    F = np.empty(m)
+    F[0:n-1] = 5*dy + y**2 - u
+    F[n-1:m] = np.dot(N, dy) - (y-y0)
+    return F
+
+def CLCmethod(fun,
+              period,
+              y0 = 0,
+              nodes = 4,
+              arg = None
+              ):
 
     y0 = y0
     zGuess = np.ones(6)
     res = np.array([y0])
     
     for i in range(1,period):
-        N = np.dot(__colloc(n),i)
-        z = fsolve(__myFunction,zGuess)
+        N = np.dot(__colloc(nodes),i)
+        z = fsolve(fun,zGuess,args=(arg))
         res = np.append(res,z[0:3])
         y0 = zGuess[2]
-    return res 
+    return res
+
+def CLCmethodPassing(fun,
+              period,
+              y0 = 0,
+              nodes = 4,
+              arg = []
+              ):
+    
+    zGuess = np.ones(nodes+2)
+    res = np.array([y0])
+    tau = arg[0]
+    Kp = arg[1]
+    u = arg[2]
+    
+    for i in range(1,period+1):
+        N = np.dot(__colloc(nodes),i)
+        z = fsolve(fun,zGuess,args=(tau, Kp, u))
+        res = np.append(res,z[0:3])
+        y0 = zGuess[2]
+    return res
 
 # test 3
-print(CLCmethod(4,5,4))
+##print(CLCmethod(__funRoot,10,y0 = 5,nodes = 4, arg = 1))
+##print()
+# test 4
+##print(CLCmethodPassing(__funRoot, 10, y0 = 5, nodes = 4, arg = 1))
+##print()
+res = CLCmethodPassing(__funRoot, 3, y0 = 5, nodes = 4, arg =[1,1,1])
+print(res)
