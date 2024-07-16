@@ -50,42 +50,60 @@ if __name__ == "__main__":
     sys.exit(app.exec())
 
 #================================================================================#
-# Plotting layout
+#!use/bin/env python
+"""
+The module for real-time process control simulator
+"""
+
 import numpy as np
 import sys
+import time
 
+from PySide6.QtWidgets import (QWidget,QApplication, QMainWindow,
+                               QGridLayout, QLineEdit, QSpinBox,
+                               QGroupBox, QDialog, QVBoxLayout,
+                               QPushButton, QLabel, QHBoxLayout)
+from PySide6.QtCore import QThread, Qt, Signal, Slot
+from PySide6.QtGui import QImage, QPixmap
+
+from PySide6.QtCore import Qt
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
 
-from PyQt6.QtWidgets import (QWidget,QApplication, QMainWindow,
-                             QGridLayout, QLineEdit, QSpinBox,
-                             QGroupBox, QDialog, QVBoxLayout,
-                             QPushButton, QLabel, QHBoxLayout)
-from PyQt6.QtCore import Qt
-
-class MW(QWidget):
+class mainWindow(QWidget):
+    changeParam = Signal(dict)
+    
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("MyApp")
+        self.setWindowTitle("Real-time Process Control Designer")
 
         layout = QGridLayout(self)
         layout.setContentsMargins(10,10,10,10)
         layout.setColumnStretch(1,1)
         layout.setRowStretch(2,2)
 
-        self.pg = pg.PlotWidget()
+        self.graphWidget = pg.PlotWidget()
 
         bottomLayout = QHBoxLayout()
-        space = QGroupBox("Space")
-        bottomLayout.addWidget(space)
+        sigSpace = QGroupBox("Signal Space")
+        sigSpace.setCheckable(True)
+        sigSpace.setChecked(True)
+        sigSpace.setMinimumHeight(300)
+        bottomLayout.addWidget(sigSpace)
+    
 
-        layout.addWidget(self.pg,0,1,2,1)
-        layout.addWidget(self.inputs(),0,0)
-        layout.addWidget(self.inputs(),1,0)
-        layout.addLayout(bottomLayout,3,3)
-        
-        
-    def inputs(self):
+        layout.addWidget(self.graphWidget,0,1,3,1)
+        layout.addWidget(self.controlConfig(),0,0)
+        layout.addWidget(self.controlConfig(),1,0)
+        layout.addLayout(bottomLayout,4,1,2,1)
+
+    def initUI(self):
+        self.appTitle = "Real-Time Complex Controller Designer"
+        self.span = 10
+        self.time = []
+        self.data = []
+
+
+    def controlConfig(self):
         result = QGroupBox("Process Control")
         result.setCheckable(True)
         result.setChecked(True)
@@ -112,13 +130,12 @@ class MW(QWidget):
         layout.addLayout(subLayout1)
         layout.addLayout(subLayout2)
         layout.addLayout(subLayout3)
-##        layout.addWidget(PV)
-##        layout.addWidget(OP)
+
         return result
               
 app = QApplication(sys.argv)
-window = MW()
+window = mainWindow()
 window.show()
-app.exec()
-        
+sys.exit(app.exec())
+
 
