@@ -164,3 +164,135 @@ app = QApplication(sys.argv)
 window = mainWindow()
 window.show()
 sys.exit(app.exec())
+
+#!use/bin/env python
+"""
+The module for real-time process control simulator
+"""
+
+import numpy as np
+import sys
+import time
+
+from PySide6.QtWidgets import (QWidget,QApplication, QMainWindow,
+                               QGridLayout, QLineEdit, QSpinBox,
+                               QGroupBox, QDialog, QVBoxLayout,
+                               QPushButton, QLabel, QHBoxLayout)
+
+from PySide6.QtCore import QThread, Qt, Signal, Slot
+from PySide6.QtGui import QImage, QPixmap
+
+import pyqtgraph as pg
+import functools
+
+class mainWindow(QWidget):
+    controlSignal_1 = Signal(dict)
+    
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Real-Time Process Control Designer")
+
+        layout = QGridLayout(self)
+        layout.setContentsMargins(10,10,10,10)
+        layout.setColumnStretch(1,1)
+        layout.setRowStretch(2,2)
+        
+        controller_1 = mainInput('Process Control 1', self)
+        controller_1.controlConfig()
+        setParam_1 = functools.partial(self.setParam, self.controlSignal_1)     
+        controller_1.SP.returnPressed.connect(setParam_1)
+        controller_1.PV.returnPressed.connect(setParam_1)
+        controller_1.OP.returnPressed.connect(setParam_1)
+
+        controller_2 = mainInput('Process Control 2', self)
+        controller_2.controlConfig()
+                                              
+        signal_1 = mainInput('Signal 1', self)
+        layout.addWidget(self.graphConfig(),0,1,3,1)
+        layout.addWidget(controller_1.controlConfig(),0,0)
+        layout.addWidget(controller_2.controlConfig(),1,0)
+        layout.addLayout(signal_1.signalConfig(),3,1,2,1)
+
+    def setParam(self, signal):
+        if controller_1.SP.text() !='' and controller_1.PV.text() !='' and controller_1.OP.text() !='':
+            d = {"SP": float(controller_1.SP.text()),"SP": float(controller_1.PV.text()),"SP": float(controller_1.OP.text())} 
+            signal.emit(d)
+            
+    def graphConfig(self):
+        self.graphWidget = pg.PlotWidget()
+        
+        return self.graphWidget
+
+class mainInput(QGroupBox):
+    
+    def __init__(self, title, parent = None):
+        super().__init__(parent)
+        self.title = title
+        self.labelSP    = None
+        self.labelPV    = None
+        self.labelOP    = None
+        self.modeButton = None
+        self.SP         = None
+        self.PV         = None
+        self.OP         = None
+        
+    def signalConfig(self):
+        bottomLayout = QHBoxLayout()
+##        signalBox = QGroupBox("Signal Configuration Box")
+##        signalBox.setCheckable(True)
+##        signalBox.setChecked(True)
+##        signalBox.setMinimumHeight(300)
+##        bottomLayout.addWidget(signalBox)
+        
+        self.setCheckable(True)
+        self.setChecked(True)
+        self.setMinimumHeight(300)
+        bottomLayout.addWidget(self)
+        
+        return bottomLayout
+
+    def controlConfig(self):
+##        result = QGroupBox("Process Control", self)
+##        result.setCheckable(True)
+##        result.setChecked(True)
+
+##        self = QGroupBox("Process Control", self)
+        self.setCheckable(True)
+        self.setChecked(True)
+        
+        self.modeButton = QPushButton("Auto")
+        self.modeButton.setCheckable(True)
+        
+        self.labelSP = QLabel("SP")
+        self.labelPV = QLabel("PV")
+        self.labelOP = QLabel("OP")
+        self.SP = QLineEdit("0")
+        self.PV = QLineEdit("0")
+        self.OP = QLineEdit("0")
+
+##        layout = QVBoxLayout(result)
+        layout = QVBoxLayout(self)
+        subLayout1 = QHBoxLayout()
+        subLayout1.addWidget(self.labelSP)
+        subLayout1.addWidget(self.SP)
+        
+        subLayout2 = QHBoxLayout()
+        subLayout2.addWidget(self.labelPV)
+        subLayout2.addWidget(self.PV)
+        
+        subLayout3 = QHBoxLayout()
+        subLayout3.addWidget(self.labelOP)
+        subLayout3.addWidget(self.OP)
+        
+        layout.addWidget(self.modeButton)
+        layout.addLayout(subLayout1)
+        layout.addLayout(subLayout2)
+        layout.addLayout(subLayout3)
+
+        return self
+              
+app = QApplication(sys.argv)
+window = mainWindow()
+window.show()
+sys.exit(app.exec())
+
