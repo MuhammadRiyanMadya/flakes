@@ -1,171 +1,4 @@
-#====================================================================================#
-# Layout allocation #
-
-import sys
-
-from PyQt5 import QtWidgets
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    w = QtWidgets.QWidget()
-
-    label = QtWidgets.QLabel("Label")
-    button = QtWidgets.QPushButton("Button")
-    lineedit = QtWidgets.QLineEdit()
-
-    left_gridlayout = QtWidgets.QGridLayout()
-    right_gridlayout = QtWidgets.QGridLayout()
-
-    left_widget = QtWidgets.QWidget()
-    left_widget.setContentsMargins(0, 0, 0, 0)
-    vbox = QtWidgets.QVBoxLayout(left_widget)
-    vbox.setContentsMargins(0, 0, 0, 0)
-    vbox.addWidget(label)
-
-    button_and_lineedit_container = QtWidgets.QWidget()
-    hlay_2 = QtWidgets.QHBoxLayout(button_and_lineedit_container)
-    hlay_2.setContentsMargins(0, 0, 0, 0)
-    hlay_2.addWidget(button)
-    hlay_2.addWidget(lineedit, stretch=1)
-    vbox.addWidget(button_and_lineedit_container)
-    bottom_container = QtWidgets.QWidget()
-    bottom_container.setContentsMargins(0, 0, 0, 0)
-    bottom_container.setLayout(left_gridlayout)
-    vbox.addWidget(bottom_container, stretch=1)
-
-    right_widget = QtWidgets.QWidget()
-    right_widget.setLayout(right_gridlayout)
-
-    hlay = QtWidgets.QHBoxLayout(w)
-    hlay.addWidget(left_widget, stretch=1)
-    hlay.addWidget(right_widget, stretch=3)
-  
-    bottom_container.setStyleSheet("background-color:salmon;")
-    right_widget.setStyleSheet("background-color:gray;")
-
-    w.resize(640, 480)
-    w.show()
-
-    sys.exit(app.exec())
-
-#================================================================================#
-
-#!use/bin/env python
-"""
-The module for real-time process control simulator
-"""
-
-import numpy as np
-import sys
-import time
-
-from PySide6.QtWidgets import (QWidget,QApplication, QMainWindow,
-                               QGridLayout, QLineEdit, QSpinBox,
-                               QGroupBox, QDialog, QVBoxLayout,
-                               QPushButton, QLabel, QHBoxLayout)
-
-from PySide6.QtCore import QThread, Qt, Signal, Slot
-from PySide6.QtGui import QImage, QPixmap
-
-import pyqtgraph as pg
-
-class mainWindow(QWidget):
-    controlSignal_1 = Signal(dict)
-    
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Real-Time Process Control Designer")
-
-        layout = QGridLayout(self)
-        layout.setContentsMargins(10,10,10,10)
-        layout.setColumnStretch(1,1)
-        layout.setRowStretch(2,2)
-        controller_1 = mainInput('Process Control 1')
-        setParam_1 = functools.partial(self.setParam, controlSignal_1)     
-        controller_1.SP.returnPressed.connect(setParam_1)
-        controller_1.PV.returnPressed.connect(setParam_1)
-        controller_1.OP.returnPressed.connect(setPatam_1)
-                                              
-        controller_2 = mainInput('Process Control 2')
-        signal_1 = mainInput('Signal 1')
-        layout.addWidget(self.graphConfig(),0,1,3,1)
-        layout.addWidget(controller_1.controlConfig(),0,0)
-        layout.addWidget(controller_2.controlConfig(),1,0)
-        layout.addLayout(signal_1.signalConfig(),4,1,2,1)
-
-    def setParam(self, signal):
-        if controller_1.SP.text() !='' and controller_1.PV.text() !='' and controller_1.OP.text() !='':
-            d = {"SP": float(controller_1.SP.text()),"SP": float(controller_1.PV.text()),"SP": float(controller_1.OP.text())} 
-            signal.emit(d)
-            
-    def graphConfig(self):
-        self.graphWidget = pg.PlotWidget()
-        
-        return self.graphWidget
-
-class mainInput():
-    
-    def __init__(self,title):
-        self.title = title
-        self.labelSP    = None
-        self.labelPV    = None
-        self.labelOP    = None
-        self.modeButton = None
-        self.SP         = None
-        self.PV         = None
-        self.OP         = None
-        
-    def signalConfig(self):
-        bottomLayout = QHBoxLayout()
-        signalBox = QGroupBox("Signal Configuration Box")
-        signalBox.setCheckable(True)
-        signalBox.setChecked(True)
-        signalBox.setMinimumHeight(300)
-        bottomLayout.addWidget(signalBox)
-        
-        return bottomLayout
-
-    def controlConfig(self):
-        result = QGroupBox("Process Control")
-        result.setCheckable(True)
-        result.setChecked(True)
-        self.modeButton = QPushButton("Auto")
-        self.modeButton.setCheckable(True)
-        
-        self.labelSP = QLabel("SP")
-        self.labelPV = QLabel("PV")
-        self.labelOP = QLabel("OP")
-        self.SP = QLineEdit()
-        self.PV = QLineEdit()
-        self.OP = QLineEdit()
-
-        layout = QVBoxLayout(result)
-        subLayout1 = QHBoxLayout()
-        subLayout1.addWidget(self.labelSP)
-        subLayout1.addWidget(self.SP)
-        
-        subLayout2 = QHBoxLayout()
-        subLayout2.addWidget(self.labelPV)
-        subLayout2.addWidget(self.PV)
-        
-        subLayout3 = QHBoxLayout()
-        subLayout3.addWidget(self.labelOP)
-        subLayout3.addWidget(self.OP)
-        
-        layout.addWidget(self.modeButton)
-        layout.addLayout(subLayout1)
-        layout.addLayout(subLayout2)
-        layout.addLayout(subLayout3)
-
-        return result
-              
-app = QApplication(sys.argv)
-window = mainWindow()
-window.show()
-sys.exit(app.exec())
-
-#!use/bin/env python
+#!usr/bin/env python
 """
 The module for real-time process control simulator
 """
@@ -192,30 +25,50 @@ class mainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Real-Time Process Control Designer")
 
+        #-* Main layout and Widget
         layout = QGridLayout(self)
         layout.setContentsMargins(10,10,10,10)
         layout.setColumnStretch(1,1)
         layout.setRowStretch(2,2)
-        
-        controller_1 = mainInput('Process Control 1', self)
-        controller_1.controlConfig()
-        setParam_1 = functools.partial(self.setParam, self.controlSignal_1)     
-        controller_1.SP.returnPressed.connect(setParam_1)
-        controller_1.PV.returnPressed.connect(setParam_1)
-        controller_1.OP.returnPressed.connect(setParam_1)
 
-        controller_2 = mainInput('Process Control 2', self)
-        controller_2.controlConfig()
-                                              
-        signal_1 = mainInput('Signal 1', self)
+        #-* Wigdet Formation
+        self.controller_1 = mainInput('Process Control 1', self)
+        self.controller_1.controlConfig()
+
+        self.controller_2 = mainInput('Process Control 2', self)
+        self.controller_2.controlConfig()
+
+        self.signal_1 = mainInput('Signal 1', self)
+
+        #-* Layout Allocation
         layout.addWidget(self.graphConfig(),0,1,3,1)
-        layout.addWidget(controller_1.controlConfig(),0,0)
-        layout.addWidget(controller_2.controlConfig(),1,0)
-        layout.addLayout(signal_1.signalConfig(),3,1,2,1)
+        layout.addWidget(self.controller_1,0,0)
+        layout.addWidget(self.controller_2,1,0)
+        layout.addLayout(self.signal_1.signalConfig(),3,1,2,1)
+
+        #-* Backgroudn Actions
+        self.complex_1 = controlComplex()
+
+        # |-* Intermediete Paramaters Passing 
+        setParam_1 = functools.partial(self.setParam, self.controlSignal_1)
+        modeCall = functools.partial(self.complex_1.modeCall, self.controller_1.modeButton)
+        
+        # |-* Signal Sender
+        self.controller_1.SP.returnPressed.connect(setParam_1)
+        self.controller_1.PV.returnPressed.connect(setParam_1)
+        self.controller_1.OP.returnPressed.connect(setParam_1)
+        self.controller_1.modeButton.clicked.connect(modeCall)
+
+        # |-* callback - future from graph: PV (MAN) PV,OP(AUTO)
+        self.controller_1.SP.setText(str(self.complex_1.SP))
+        self.controller_1.PV.setText(str(self.complex_1.PV))
+        self.controller_1.OP.setText(str(self.complex_1.OP))
+        
+        self.controlSignal_1.connect(self.complex_1.dataReceiver)
 
     def setParam(self, signal):
-        if controller_1.SP.text() !='' and controller_1.PV.text() !='' and controller_1.OP.text() !='':
-            d = {"SP": float(controller_1.SP.text()),"SP": float(controller_1.PV.text()),"SP": float(controller_1.OP.text())} 
+        if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
+            d = {"SP": float(self.controller_1.SP.text()),"PV": float(self.controller_1.PV.text()),"OP": float(self.controller_1.OP.text())} 
             signal.emit(d)
             
     def graphConfig(self):
@@ -238,12 +91,6 @@ class mainInput(QGroupBox):
         
     def signalConfig(self):
         bottomLayout = QHBoxLayout()
-##        signalBox = QGroupBox("Signal Configuration Box")
-##        signalBox.setCheckable(True)
-##        signalBox.setChecked(True)
-##        signalBox.setMinimumHeight(300)
-##        bottomLayout.addWidget(signalBox)
-        
         self.setCheckable(True)
         self.setChecked(True)
         self.setMinimumHeight(300)
@@ -252,25 +99,19 @@ class mainInput(QGroupBox):
         return bottomLayout
 
     def controlConfig(self):
-##        result = QGroupBox("Process Control", self)
-##        result.setCheckable(True)
-##        result.setChecked(True)
-
-##        self = QGroupBox("Process Control", self)
         self.setCheckable(True)
         self.setChecked(True)
         
-        self.modeButton = QPushButton("Auto")
+        self.modeButton = QPushButton("Man")
         self.modeButton.setCheckable(True)
         
         self.labelSP = QLabel("SP")
         self.labelPV = QLabel("PV")
         self.labelOP = QLabel("OP")
-        self.SP = QLineEdit("0")
-        self.PV = QLineEdit("0")
-        self.OP = QLineEdit("0")
+        self.SP = QLineEdit("2")
+        self.PV = QLineEdit("2")
+        self.OP = QLineEdit("3")
 
-##        layout = QVBoxLayout(result)
         layout = QVBoxLayout(self)
         subLayout1 = QHBoxLayout()
         subLayout1.addWidget(self.labelSP)
@@ -290,9 +131,42 @@ class mainInput(QGroupBox):
         layout.addLayout(subLayout3)
 
         return self
-              
-app = QApplication(sys.argv)
-window = mainWindow()
-window.show()
-sys.exit(app.exec())
 
+class controlComplex():
+    
+    def __init__(self):
+        self.state = False
+        self.SP = "1"
+        self.PV = "1"
+        self.OP = "1"
+        
+        
+    def modeCall(self, instance):
+        self.state = instance.isChecked()
+        if instance.isChecked():
+            instance.setText('Auto')
+        else:
+            instance.setText('Man')
+        return self.state
+
+    # P and ID controller
+##    def generalPI(self, self.SP, self.PV, self.OP):
+##        if self.state:
+##            
+##
+##        else:
+                  
+    
+    @Slot(dict)
+    def dataReceiver(self, param):
+        self.SP = param["SP"]
+        self.PV = param["PV"]
+        self.OP = param["OP"]
+        print(self.SP)
+            
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = mainWindow()
+    window.show()
+    sys.exit(app.exec())
