@@ -39,7 +39,8 @@ class flakes():
             except:
                 u = uf(0)
             dydt = (Kp*u - y)/taup
-        elif self.name == 'rfopdt:
+        elif self.name == 'rfopdt':
+            u = uf
             dydt = ((Kp*u - y)/taup)
         
         return dydt
@@ -240,36 +241,36 @@ class standard(flakes):
              op_lo   = 0,
             ):
     
-        error = SP - PV[-1]
+        self.error = SP - PV[-1]
         dpv = 0
         if PV[0] != None:
-            dpv = (PV[-1] - PV[0])/sample_time
-            ioe = ioe + error*sample_time
-        op = OP + Kc*error + Kc/T1*ioe - Kc*T2*dpv
+            dpv = (PV[-1] - PV[0])/self.sample_time
+            ioe = ioe + self.error*self.sample_time
+        op = OP + Kc*self.error + Kc/T1*ioe - Kc*T2*dpv
         # anti-reset windup protection
         if op > op_hi:
             op = op_hi
-            ioe = ioe - error*sample_time
+            ioe = ioe - self.error*self.sample_time
         elif op < op_lo:
             op = op_lo
-            ioe = ioe + error*sample_time
+            ioe = ioe + self.error*self.sample_time
             
         return op, PV[-1], ioe
                 
     def systemModel(self,
-                    funModel,
+                    fun,
                     PV0,
                     OP,
-                    sample_time,
                     Kp,
                     taup
                    ):
         
-        delta_t = [0, sample_time]
+        delta_t = [0, self.sample_time]
         yt = integrate.odeint(fun,PV0,delta_t,args=(OP, Kp, taup))
         PV = yt[1,0]
                        
         return PV
+    
     def nodeConnect(self, connect: bool):
         try:
             if connect == True:
@@ -284,37 +285,44 @@ class standard(flakes):
 ##            while mode == 'auto':
 
 # test 19 - 07 - 24
-#pid1 = standard(sample_time = 1)
-#pid.PV = [None, 0]
-#pid.OP = 0
-#pid.SP = 1
-#while 1:
-#    time.sleep(1)
-#    OP, PVpast, ioe = pid.pid(self.SP, self.OP, self.ioe, PV=PV)
-#    PVnew = pid.systemModel(self._model, self.PV[-1], self.OP, self.sample_time, 1,1)
-#    PV = [PVpast, PVnew]
+##pid1 = standard(sample_time = 1)
+##pid1.name = 'rfopdt'
+##pid1.PV = [None, 0]
+##pid1.OP = 0
+##pid1.SP = 1
+##while 1:
+##    time.sleep(1)
+##    pid1.OP, PVpast, pid1.ioe = pid1.pid(pid1.SP, pid1.OP, pid1.ioe, pid1.PV,1,1,0)
+##    PVnew = pid1.systemModel(pid1._flakes__model, PVpast, pid1.OP, 1,1)
+##    pid1.PV = [PVpast, PVnew]
+##    print(pid1.SP)
+##    print(pid1.error)
+##    print(pid1.PV)
+
     
          
-classs predictiveControl():
-def objective(j):
-    for k in range(1,2*P+1):
-        if k==1:
-            z0 = y[i-P]
-        if k<=P:
-            if i-P+k<0:
-                j[k] = 0
-            else:
-                j[k] = u[i-P+k]
-        elif k>P+M:
-            j[k] = j[P+M]
-        timeProgram = [deltaTimeProgram*(k-1),deltaTimeProgram*(k)]        
-        z_out = odeint(processModel,z0,timeProgram,args=(j[k],K,tau))
-        z0 = z_out[-1]
-        z[k] = z_out[0]
-        SetpointProgram[k] = sp[i]
-        deltaj = np.zeros(2*P+1)        
-        if k>P:
-            deltaj[k] = j[k]-j[k-1]
-            se[k] = (SetpointProgram[k]-z[k])**2 + 20 * (j[k])**2
-    obj = np.sum(se[P+1:])
-    return obj
+class predictiveControl():
+    def __init__(self):
+        pass
+    def objective(j):
+        for k in range(1,2*P+1):
+            if k==1:
+                z0 = y[i-P]
+            if k<=P:
+                if i-P+k<0:
+                    j[k] = 0
+                else:
+                    j[k] = u[i-P+k]
+            elif k>P+M:
+                j[k] = j[P+M]
+            timeProgram = [deltaTimeProgram*(k-1),deltaTimeProgram*(k)]        
+            z_out = odeint(processModel,z0,timeProgram,args=(j[k],K,tau))
+            z0 = z_out[-1]
+            z[k] = z_out[0]
+            SetpointProgram[k] = sp[i]
+            deltaj = np.zeros(2*P+1)        
+            if k>P:
+                deltaj[k] = j[k]-j[k-1]
+                se[k] = (SetpointProgram[k]-z[k])**2 + 20 * (j[k])**2
+        obj = np.sum(se[P+1:])
+        return obj
