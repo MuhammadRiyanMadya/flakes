@@ -148,15 +148,21 @@ class controlComplex():
         else:
             instance.setText('Man')
         return self.state
-
-    # P and ID controller
-##    def generalPI(self, self.SP, self.PV, self.OP):
-##        if self.state:
-##            
-##
-##        else:
+      
+    def generalPI(self):
+        if self.state:
+            pid_1 = flakes.standard(self.sample_time) #NOTE: 1 = sample_time
+            pid_1.name = 'rfopdt'
+            pid_1.PV = [None,float(self.PV)]
+            pid_1.OP = float(self.OP)
+            pid_1.SP = float(self.SP)
+            while 1:
+                time.sleep(self.sample_time)
+                pid_1.OP, pid_1.PV[0], pid_1.ioe = pid_1.pid(pid_1.SP, pid_1.OP, pid_1.ioe, pid_1.PV,1,1)
+                pid_1.PV[-1] = pid_1.systemModel(pid_1._Flakes__model, pid_1.PV[0], pid_1.OP,1,1)
+                signalBack_1.emit(
+                print(pid_1.error)
                   
-    
     @Slot(dict)
     def dataReceiver(self, param):
         self.SP = param["SP"]
