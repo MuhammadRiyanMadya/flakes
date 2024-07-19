@@ -29,6 +29,7 @@ class mainWindow(QWidget):
         self.dataSP = []
         self.dataPV = []
         self.dataOP = [] #Future: change to numpy array
+        self.dataStep = []
 
         #-* Main layout and Widget
         layout = QGridLayout(self)
@@ -75,21 +76,21 @@ class mainWindow(QWidget):
 ##        self.controller_1.OP.setText(self.dataOP[-1])
         
         self.controlSignal_1.connect(self.complex_1.dataReceiver)
+        self.complex_1.signalBack_1.connect(self.setData)
         self.complex_1.start()
-
-##    def setData(self, sp, pv, op:
-##        self.dataSP.append(sp)
-##        self.dataPV.append(pv)
-##        self.dataOP.append(op)
-##        print(self.dataSP)
-####        self.graphWidget.plot(self.time, self.data) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
-####        
-####        if self.time[-1] != self.span:
-####            self.graphWidget.setXRange(self.time[-1] - self.span, self.time[-1], padding = 0.3)
-####            
-##        self.graphWidget.setYRange(min(-2, min(self.data)), max(2, max(self.data)), padding = 0.1)
-##        return
+        
+    @Slot(float,float, float,float)
+    def setData(self, sp, pv, op, n):
+        self.dataSP.append(sp)
+        self.dataPV.append(pv)
+        self.dataOP.append(op)
+        self.dataStep.append(n)
+        self.graphWidget.plot(self.dataStep, self.dataOP) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
 ##        
+##        if self.time[-1] != self.span:
+##            self.graphWidget.setXRange(self.time[-1] - self.span, self.time[-1], padding = 0.3)
+##            
+##        self.graphWidget.setYRange(min(-2, min(self.data)), max(2, max(self.data)), padding = 0.1)
 
     def setParam(self, signal):
         if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
@@ -159,7 +160,7 @@ class mainInput(QGroupBox):
         return self
 
 class controlComplex(QThread):
-    signalBack_1 = Signal(float, float, float)
+    signalBack_1 = Signal(float, float, float, float)
     
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -170,6 +171,7 @@ class controlComplex(QThread):
         self.PVlast = None
         self.sample_time = 1
         self.isRunning = False
+        self.n = 0
         
     def modeCall(self, instance):
         self.state = instance.isChecked()
@@ -191,9 +193,12 @@ class controlComplex(QThread):
             pidOne.PV = [self.PVlast,float(self.PV)]
             pidOne.OP = float(self.OP)
             i = 0
+            n = self.n
             while i < 1:
                 if self.state == True:
                     i += 1
+                    n += 1
+                    self.n = n
                     time.sleep(self.sample_time)
                         
                     pidOne.OP, pidOne.PV[0], pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,1,1,0)
@@ -202,9 +207,13 @@ class controlComplex(QThread):
                     self.PV = float(pidOne.PV[-1])
                     self.PVlast = pidOne.PV[0]
                     self.OP = pidOne.OP
-                    print(self.OP)
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP)
+                    self.state = self.state
+
+                    self.signalBack_1.emit(self.SP, self.PV, pidOne.error, n)
                 else:
+                    i += 1
+                    n += 1
+                    self.n = n
                     time.sleep(self.sample_time)
                     
                     pidOne.OP, pidOne.PV[0], pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,1,1,0, mode= False)
@@ -214,8 +223,8 @@ class controlComplex(QThread):
                     self.PVlast = pidOne.PV[0]
                     self.OP = pidOne.OP
                     self.state = self.state
-                    print(self.OP)         
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP)
+
+                    self.signalBack_1.emit(self.SP, self.PV, pidOne.error, n)
   
                   
     @Slot(dict)
