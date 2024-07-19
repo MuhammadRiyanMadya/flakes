@@ -26,6 +26,9 @@ class mainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Real-Time Process Control Designer")
+        self.dataSP = []
+        self.dataPV = []
+        self.dataOP = [] #Future: change to numpy array
 
         #-* Main layout and Widget
         layout = QGridLayout(self)
@@ -50,34 +53,54 @@ class mainWindow(QWidget):
 
         #-* Backgroudn Actions
         self.complex_1 = controlComplex(self)
-
+        
         # |-* Intermediete Paramaters Passing 
         setParam_1 = functools.partial(self.setParam, self.controlSignal_1)
         modeCall = functools.partial(self.complex_1.modeCall, self.controller_1.modeButton)
-        
+
+
         # |-* Signal Sender
         self.controller_1.SP.returnPressed.connect(setParam_1)
         self.controller_1.PV.returnPressed.connect(setParam_1)
         self.controller_1.OP.returnPressed.connect(setParam_1)
         self.controller_1.modeButton.clicked.connect(modeCall)
-
+        
         # |-* callback - future from graph: PV (MAN) PV,OP(AUTO)
         self.controller_1.SP.setText(str(self.complex_1.SP))
         self.controller_1.PV.setText(str(self.complex_1.PV))
         self.controller_1.OP.setText(str(self.complex_1.OP))
+
+##        self.controller_1.SP.setText(self.dataSP[-1])
+##        self.controller_1.PV.setText(self.dataPV[-1])
+##        self.controller_1.OP.setText(self.dataOP[-1])
         
         self.controlSignal_1.connect(self.complex_1.dataReceiver)
         self.complex_1.start()
 
+##    def setData(self, sp, pv, op:
+##        self.dataSP.append(sp)
+##        self.dataPV.append(pv)
+##        self.dataOP.append(op)
+##        print(self.dataSP)
+####        self.graphWidget.plot(self.time, self.data) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
+####        
+####        if self.time[-1] != self.span:
+####            self.graphWidget.setXRange(self.time[-1] - self.span, self.time[-1], padding = 0.3)
+####            
+##        self.graphWidget.setYRange(min(-2, min(self.data)), max(2, max(self.data)), padding = 0.1)
+##        return
+##        
+
     def setParam(self, signal):
         if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
-            d = {"SP": float(self.controller_1.SP.text()),"PV": float(self.controller_1.PV.text()),"OP": float(self.controller_1.OP.text())} 
+            d = {"state": self.controller_1.modeButton.text(),"SP": float(self.controller_1.SP.text()),"PV": float(self.controller_1.PV.text()),"OP": float(self.controller_1.OP.text())} 
             signal.emit(d)
             
     def graphConfig(self):
         self.graphWidget = pg.PlotWidget()
         
         return self.graphWidget
+
 
 class mainInput(QGroupBox):
     
@@ -138,13 +161,13 @@ class mainInput(QGroupBox):
 class controlComplex(QThread):
     signalBack_1 = Signal(float, float, float)
     
-    def __init__(self,a):
-        super().__init__()
+    def __init__(self, parent = None):
+        super().__init__(parent)
         self.state = False
-        print(self.state)
         self.SP = "1"
         self.PV = "0"
         self.OP = "0"
+        self.PVlast = None
         self.sample_time = 1
         self.isRunning = False
         
@@ -155,34 +178,55 @@ class controlComplex(QThread):
         else:
             instance.setText('Man')
         return self.state
-
+    
     # P and ID controller
-##    def run(self):
-##        self.isRunning = True
-##        if self.state and self.isRunning:
-##            pid_1 = flakes.standard(self.sample_time) #NOTE: 1 = sample_time
-##            pid_1.name = 'rfopdt'
-##            pid_1.PV = [None,float(self.PV)]
-##            pid_1.OP = float(self.OP)
-##            pid_1.SP = float(self.SP)
-##            while 1:
-##                time.sleep(self.sample_time)
-##                pid_1.OP, pid_1.PV[0], pid_1.ioe = pid_1.pid(pid_1.SP, pid_1.OP, pid_1.ioe, pid_1.PV,1,1,1)
-##                pid_1.PV[-1] = pid_1.systemModel(pid_1._Flakes__model, pid_1.PV[0], pid_1.OP,1,1)
-##                self.PV = pid_1.PV[-1]
-##                self.OP = pid_1.OP
-##                self.signalBack_1.emit(self.SP, self.PV, self.OP)
-##                print(pid_1.error)
-    def stop(self):
-        self.isRunning = False
-        self.quit()
-        self.terminate()   
+    def run(self):
+        self.isRunning = True
+        while self.isRunning:
+            self.state = self.state
+            print(self.state)
+            pidOne = flakes.standard(self.sample_time) 
+            pidOne.name = 'rfopdt'
+            pidOne.SP = float(self.SP)
+            pidOne.PV = [self.PVlast,float(self.PV)]
+            pidOne.OP = float(self.OP)
+            i = 0
+            while i < 1:
+                if self.state == True:
+                    i += 1
+                    time.sleep(self.sample_time)
+                        
+                    pidOne.OP, pidOne.PV[0], pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,1,1,0)
+                    pidOne.PV[-1] = pidOne.systemModel(pidOne._flakes__model, pidOne.PV[0], pidOne.OP,1,1)
+                        
+                    self.PV = float(pidOne.PV[-1])
+                    self.PVlast = pidOne.PV[0]
+                    self.OP = pidOne.OP
+                    print(self.OP)
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP)
+                else:
+                    time.sleep(self.sample_time)
+                    
+                    pidOne.OP, pidOne.PV[0], pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,1,1,0, mode= False)
+                    pidOne.PV[-1] = pidOne.systemModel(pidOne._flakes__model, pidOne.PV[0], pidOne.OP,1,1)
+                    
+                    self.PV = float(pidOne.PV[-1])
+                    self.PVlast = pidOne.PV[0]
+                    self.OP = pidOne.OP
+                    self.state = self.state
+                    print(self.OP)         
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP)
+  
                   
     @Slot(dict)
     def dataReceiver(self, param):
+        self.state = param["state"]
+        print("signal recv", self.state)
         self.SP = param["SP"]
+        print(self.SP)
         self.PV = param["PV"]
         self.OP = param["OP"]
+        
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
             
@@ -191,5 +235,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = mainWindow()
     window.show()
-    app.aboutToQuit.connect(window.complex_1.stop)
     sys.exit(app.exec())
