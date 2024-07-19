@@ -18,6 +18,8 @@ from PySide6.QtGui import QImage, QPixmap
 import pyqtgraph as pg
 import functools
 
+from flakes import flakes
+
 class mainWindow(QWidget):
     controlSignal_1 = Signal(dict)
     
@@ -47,7 +49,7 @@ class mainWindow(QWidget):
         layout.addLayout(self.signal_1.signalConfig(),3,1,2,1)
 
         #-* Backgroudn Actions
-        self.complex_1 = controlComplex()
+        self.complex_1 = controlComplex(self)
 
         # |-* Intermediete Paramaters Passing 
         setParam_1 = functools.partial(self.setParam, self.controlSignal_1)
@@ -65,6 +67,7 @@ class mainWindow(QWidget):
         self.controller_1.OP.setText(str(self.complex_1.OP))
         
         self.controlSignal_1.connect(self.complex_1.dataReceiver)
+        self.complex_1.start()
 
     def setParam(self, signal):
         if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
@@ -132,14 +135,18 @@ class mainInput(QGroupBox):
 
         return self
 
-class controlComplex():
+class controlComplex(QThread):
+    signalBack_1 = Signal(float, float, float)
     
-    def __init__(self):
+    def __init__(self,a):
+        super().__init__()
         self.state = False
+        print(self.state)
         self.SP = "1"
-        self.PV = "1"
-        self.OP = "1"
-        
+        self.PV = "0"
+        self.OP = "0"
+        self.sample_time = 1
+        self.isRunning = False
         
     def modeCall(self, instance):
         self.state = instance.isChecked()
@@ -148,31 +155,41 @@ class controlComplex():
         else:
             instance.setText('Man')
         return self.state
-      
-    def generalPI(self):
-        if self.state:
-            pid_1 = flakes.standard(self.sample_time) #NOTE: 1 = sample_time
-            pid_1.name = 'rfopdt'
-            pid_1.PV = [None,float(self.PV)]
-            pid_1.OP = float(self.OP)
-            pid_1.SP = float(self.SP)
-            while 1:
-                time.sleep(self.sample_time)
-                pid_1.OP, pid_1.PV[0], pid_1.ioe = pid_1.pid(pid_1.SP, pid_1.OP, pid_1.ioe, pid_1.PV,1,1)
-                pid_1.PV[-1] = pid_1.systemModel(pid_1._Flakes__model, pid_1.PV[0], pid_1.OP,1,1)
-                signalBack_1.emit(
-                print(pid_1.error)
+
+    # P and ID controller
+##    def run(self):
+##        self.isRunning = True
+##        if self.state and self.isRunning:
+##            pid_1 = flakes.standard(self.sample_time) #NOTE: 1 = sample_time
+##            pid_1.name = 'rfopdt'
+##            pid_1.PV = [None,float(self.PV)]
+##            pid_1.OP = float(self.OP)
+##            pid_1.SP = float(self.SP)
+##            while 1:
+##                time.sleep(self.sample_time)
+##                pid_1.OP, pid_1.PV[0], pid_1.ioe = pid_1.pid(pid_1.SP, pid_1.OP, pid_1.ioe, pid_1.PV,1,1,1)
+##                pid_1.PV[-1] = pid_1.systemModel(pid_1._Flakes__model, pid_1.PV[0], pid_1.OP,1,1)
+##                self.PV = pid_1.PV[-1]
+##                self.OP = pid_1.OP
+##                self.signalBack_1.emit(self.SP, self.PV, self.OP)
+##                print(pid_1.error)
+    def stop(self):
+        self.isRunning = False
+        self.quit()
+        self.terminate()   
                   
     @Slot(dict)
     def dataReceiver(self, param):
         self.SP = param["SP"]
         self.PV = param["PV"]
         self.OP = param["OP"]
-        print(self.SP)
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
             
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = mainWindow()
     window.show()
+    app.aboutToQuit.connect(window.complex_1.stop)
     sys.exit(app.exec())
