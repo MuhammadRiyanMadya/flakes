@@ -29,8 +29,7 @@ class flakes():
         self.pv     = []
         self.prm0   = []
         
-    def __model(self,y,t,uf,Kp,taup,thetap):
-
+    def __model(self,y,t,uf,Kp,taup,**kwargs):
         if self.name == 'fopdt':
             try:
                 if (t - thetap) < 0:
@@ -40,7 +39,10 @@ class flakes():
             except:
                 u = uf(0)
             dydt = (Kp*u - y)/taup
-            return dydt
+        elif self.name == 'rfopdt:
+            dydt = ((Kp*u - y)/taup)
+        
+        return dydt
         
     def __timepoint(self, period, time0 = 0):
         
@@ -204,12 +206,18 @@ The time period must be defined first")
 class standard(flakes):
     __counter = 0
     
-    def __init__(self):
+    def __init__(self, sample_time=1):
         super().__init__()
         standard.__counter   += 1
         self.SP_storage       = []
         self.PV_storage       = []
-        self.sample_time      = None
+        self.sample_time      = sample_time
+        self.PV               = [None, 0]
+        self.SP               = 0
+        self.ioe              = 0
+        self.Kc               = 0
+        self.T1               = 0
+        self.T2               = 0
         
     def pid_config(self, SP, PV, sample_time = 1, archive = True):
         if archive == True:
@@ -219,31 +227,49 @@ class standard(flakes):
             self.SP_storage.append(SP)
             self.PV_storage(PV)
             time.sleep(sample_time)
-    def pid (
-            self,
-            SP,     
-            PV, 
-            Kc, 
-            T1, 
-            T2, 
-            op_hi   = 100,
-            op_lo   = 0,
+            
+    def pid (self,
+             SP,
+             OP,
+             ioe,
+             PV: list,
+             Kc,
+             T1,
+             T2,
+             op_hi   = 100,
+             op_lo   = 0,
             ):
-        PV_array = np.mpy
-        PV_array[1] = PV
-        error = SP - PV
-        dpv = (PV[1] - PV[0])/self.sample_time
-        ioe = 0
-        ioe = ioe + error*self.sample_time
-        op = Kc*error + Kc/T1*ioe - Kc*T2*dpv
+    
+        error = SP - PV[-1]
+        dpv = 0
+        if PV[0] != None:
+            dpv = (PV[-1] - PV[0])/sample_time
+            ioe = ioe + error*sample_time
+        op = OP + Kc*error + Kc/T1*ioe - Kc*T2*dpv
         # anti-reset windup protection
         if op > op_hi:
             op = op_hi
-            ioe = ioe - error*self.sample_time
+            ioe = ioe - error*sample_time
         elif op < op_lo:
             op = op_lo
-            ioe = ioe - error*self.sample_time
-        return op
+            ioe = ioe + error*sample_time
+            
+        return op, PV[-1], ioe
+                
+    def systemModel(self,
+                    funModel,
+                    PV0,
+                    OP,
+                    sample_time,
+                    Kp,
+                    taup
+                   ):
+        
+        delta_t = [0, sample_time]
+        yt = integrate.odeint(fun,PV0,delta_t,args=(OP, Kp, taup))
+        PV = yt[1,0]
+                       
+        return PV
     def nodeConnect(self, connect: bool):
         try:
             if connect == True:
@@ -256,6 +282,18 @@ class standard(flakes):
 ##        if mode == 'auto':
 ##            auto_start_time = datetime.now()
 ##            while mode == 'auto':
+
+# test 19 - 07 - 24
+#pid1 = standard(sample_time = 1)
+#pid.PV = [None, 0]
+#pid.OP = 0
+#pid.SP = 1
+#while 1:
+#    time.sleep(1)
+#    OP, PVpast, ioe = pid.pid(self.SP, self.OP, self.ioe, PV=PV)
+#    PVnew = pid.systemModel(self._model, self.PV[-1], self.OP, self.sample_time, 1,1)
+#    PV = [PVpast, PVnew]
+    
          
 classs predictiveControl():
 def objective(j):
