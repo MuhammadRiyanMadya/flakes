@@ -20,6 +20,7 @@ import pyqtgraph as pg
 import functools
 
 from flakes import flakes
+import time
 
 class mainWindow(QWidget):
     controlSignal_1 = Signal(dict)
@@ -31,7 +32,10 @@ class mainWindow(QWidget):
         self.dataPV     = []
         self.dataOP     = []
         self.dataTime   = []
-        self.span       = 10
+        self.span       = 180
+
+        self.updaterPV = None
+        self.updaterOP = None
 
         #-* Main layout and Widget
         layout = QGridLayout(self)
@@ -70,8 +74,11 @@ class mainWindow(QWidget):
         
         # |-* callback - future from graph: PV (MAN) PV,OP(AUTO)
         self.controller_1.SP.setText(str(self.complex_1.SP))
-        self.controller_1.PV.setText(str(self.complex_1.PV))
+##        self.controller_1.PV.setText(str(self.complex_1.PV))
         self.controller_1.OP.setText(str(self.complex_1.OP))
+
+
+            
 
 ##        self.controller_1.SP.setText(self.dataSP[-1])
 ##        self.controller_1.PV.setText(self.dataPV[-1])
@@ -87,13 +94,25 @@ class mainWindow(QWidget):
         self.dataPV.append(pv)
         self.dataOP.append(op)
         self.dataTime.append(n)
+
+        # |-* updater display
+        self.updaterPV = round(pv,4)
+        self.updaterOP = round(op,4)
+        if self.updaterPV == None:
+            self.controller_1.PV.setText("BadValue")
+            self.controller_1.OP.setText("BadValue")
+        else:
+            self.controller_1.PV.setText(str(self.updaterPV))
+            self.controller_1.OP.setText(str(self.updaterOP))
+
+        # |-* plot
         self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataSP, pen='#2E2EFE')) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
         self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataPV, pen='#2EFEF7'))
         self.v2.addItem(pg.PlotCurveItem(self.dataTime, self.dataOP, pen='#2EFE2E'))
 
         if self.dataTime[-1] != self.span:
             self.v1.setXRange(self.dataTime[-1] - self.span, self.dataTime[-1], padding = 0.3)
-            self.v1.setYRange(min(-2, min(self.dataPV), min(self.dataOP)), max(2, max(self.dataPV), max(self.dataOP)), padding = 0.1)
+            self.v1.setYRange(min(-5, min(self.dataPV), min(self.dataOP)), max(2, max(self.dataPV), max(self.dataOP)), padding = 0.1)
 
     def setParam(self, signal):
         if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
@@ -123,6 +142,9 @@ class mainWindow(QWidget):
         self.p1 = pg.PlotItem()
         self.v1 = self.p1.vb
         self.l.addItem(self.p1, row = 2, col = 2, rowspan = 1, colspan = 1)
+
+        self.timeAxis = pg.DateAxisItem(orientation='bottom')
+        self.p1.setAxisItems({'bottom': self.timeAxis})
         
         #split main viewbox
 ##        self.p1.axis_left = self.p1.getAxis('left')
@@ -219,6 +241,7 @@ class controlComplex(QThread):
         self.sample_time = 1
         self.isRunning = False
         self.n = 0
+        self.startTime = 0
         
     def modeCall(self, instance):
         self.state = instance.isChecked()
@@ -241,6 +264,9 @@ class controlComplex(QThread):
             pidOne.OP = float(self.OP)
             i = 0
             n = self.n
+
+            ##
+            self.startTime = time.time()
             while i < 1:
                 if self.state == True or self.state == 'Auto':
                     i += 1
@@ -256,7 +282,7 @@ class controlComplex(QThread):
                     self.PVlast = PVlast
                     self.state = self.state
 
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, n)
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP, self.startTime)
 
                     # debugging
                     print(self.SP)
@@ -275,7 +301,7 @@ class controlComplex(QThread):
                     self.PV = PVnew
                     self.state = self.state
 
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, n)
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP, self.startTime)
   
                   
     @Slot(dict)
