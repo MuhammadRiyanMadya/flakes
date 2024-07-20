@@ -1,13 +1,11 @@
- -*- coding: utf-8 -*-
+#!usr/bin/env python
 """
 Created on Tue Oct 31 00:16:56 2023
 
 @author: mrm
+
+Module flakes: Emerging process control technology
 """
-
-#! usr/bin/env python3
-
-"""Module flakes: Emerging process control technology"""
 
 from scipy import integrate, interpolate
 import matplotlib.pyplot as plt
