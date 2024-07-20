@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ -*- coding: utf-8 -*-
 """
 Created on Tue Oct 31 00:16:56 2023
 
@@ -17,7 +17,7 @@ from scipy import optimize
 from datetime import datetime
 import time
 
-class flakes():
+class Flakes():
     def __init__(self):
         self.period   = 0
         self.name   = 'fopdt'
@@ -204,7 +204,7 @@ The time period must be defined first")
             #SSE = self.objective(eq_name,prm)
         return self.prm
 
-class standard(flakes):
+class standard(Flakes):
     __counter = 0
     
     def __init__(self, sample_time=1):
@@ -239,21 +239,25 @@ class standard(flakes):
              T2,
              op_hi   = 100,
              op_lo   = 0,
+             mode = True
             ):
     
         self.error = SP - PV[-1]
         dpv = 0
-        if PV[0] != None:
-            dpv = (PV[-1] - PV[0])/self.sample_time
-            ioe = ioe + self.error*self.sample_time
-        op = OP + Kc*self.error + Kc/T1*ioe - Kc*T2*dpv
-        # anti-reset windup protection
-        if op > op_hi:
-            op = op_hi
-            ioe = ioe - self.error*self.sample_time
-        elif op < op_lo:
-            op = op_lo
-            ioe = ioe + self.error*self.sample_time
+        if mode == True:
+            if PV[0] != None:
+                dpv = (PV[-1] - PV[0])/self.sample_time
+                ioe = ioe + self.error*self.sample_time
+            op = OP + Kc*self.error + Kc/T1*ioe - Kc*T2*dpv
+            # anti-reset windup protection
+            if op > op_hi:
+                op = op_hi
+                ioe = ioe - self.error*self.sample_time
+            elif op < op_lo:
+                op = op_lo
+                ioe = ioe + self.error*self.sample_time
+        else:
+            op = OP
             
         return op, PV[-1], ioe
                 
@@ -292,9 +296,8 @@ class standard(flakes):
 ##pid1.SP = 1
 ##while 1:
 ##    time.sleep(1)
-##    pid1.OP, PVpast, pid1.ioe = pid1.pid(pid1.SP, pid1.OP, pid1.ioe, pid1.PV,1,1,0)
-##    PVnew = pid1.systemModel(pid1._flakes__model, PVpast, pid1.OP, 1,1)
-##    pid1.PV = [PVpast, PVnew]
+##    pid1.OP, pid1.PV[0], pid1.ioe = pid1.pid(pid1.SP, pid1.OP, pid1.ioe, pid1.PV,1,1,0)
+##    pid1.PV[-1] = pid1.systemModel(pid1._Flakes__model, pid1.PV[0], pid1.OP, 1,1)
 ##    print(pid1.SP)
 ##    print(pid1.error)
 ##    print(pid1.PV)
