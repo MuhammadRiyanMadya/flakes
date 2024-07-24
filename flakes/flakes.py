@@ -618,22 +618,18 @@ class standard(Flakes):
         except KeyboardInterrupt:
             connect = False
             
-    def shiftBuffer(self,arr, first, second, index = 0):
-        
+    def shiftBuffer(self,arr, first, second = None, index = 0):
         sizeArr = np.size(arr)
-        
-        transA = np.append(arr,first)
-        matA = np.delete(transA,index)
-        transB = np.append(matA,second)
-        res = np.delete(transB,index)
-        
+        res = np.append(arr,first)
+        res = np.delete(res,index)
+        if second != None:
+            res = np.append(res,second)
+            res = np.delete(res,index)
         sizeRes = np.size(res)
-        
         if sizeArr != sizeRes:
             print("Error, numpy array dimension reduced")
 
         return res
-    
             
 ##    def mode(self, mode: str)
 ##        if mode == 'auto':
