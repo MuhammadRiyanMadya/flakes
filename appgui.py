@@ -43,6 +43,8 @@ class mainWindow(QWidget):
         self.dataSP     = []
         self.dataPV     = []
         self.dataOP     = []
+        self.dataError  = []
+        self.errHor     = []
         self.dataTime   = []
         self.span       = 60
 
@@ -135,35 +137,43 @@ class mainWindow(QWidget):
         self.complex_1.signalBack_1.connect(self.setData)
         self.complex_1.start()
         
-    @Slot(float,float,float,float,bool)
-    def setData(self, sp, pv, op, n, sts):
+    @Slot(float,float,float,float,float,bool)
+    def setData(self, sp, pv, op, err, n, sts):
         self.dataSP.append(sp)
         self.dataPV.append(pv)
         self.dataOP.append(op)
+        self.dataError.append(err)
+        if err == 0:
+            self.errHor.append(err)
+        else:
+            self.errHor.append(1-err/err)    
         self.dataTime.append(n)
 
         # |-* updater display
-        self.updaterPV = round(pv,4)
-        self.updaterOP = round(op,4)
+        self.updaterPV = round(pv,6)
+        self.updaterOP = round(op,6)
         self.updaterState = sts
         print(self.updaterState)
         if self.updaterPV == None:
             self.controller_1.PV.setText("BadValue")
             self.controller_1.OP.setText("BadValue")
         self.controller_1.PV.setText(str(self.updaterPV))
-        if self.updaterState == True or self.updaterState == 'Auto':
+        if self.updaterState == True:
             self.controller_1.OP.setText(str(self.updaterOP))
         
         # |-* plot
         self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataSP, pen='#2E2EFE')) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
         self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataPV, pen='#2EFEF7'))
-        self.v2.addItem(pg.PlotCurveItem(self.dataTime, self.dataOP, pen='#2EFE2E'))
+        self.v2.addItem(pg.PlotCurveItem(self.dataTime, self.dataOP, pen='#FEFE2E'))
+        self.v3.addItem(pg.PlotCurveItem(self.dataTime, self.dataError, pen='#FE2E2E'))
+        self.v3.addItem(pg.PlotCurveItem(self.dataTime, self.errHor, pen='#962efe'))
 
-        if self.graphicState != True:
+        if self.graphicState != True and len(self.dataTime) >= 11:
             if self.dataTime[-1] != self.span:
                 self.v1.setXRange(self.dataTime[-1] - self.span, self.dataTime[-1], padding = 0.3)
-                self.v1.setYRange(min(-5, min(self.dataPV), min(self.dataOP)), max(2, max(self.dataPV), max(self.dataOP)), padding = 0.1)
-                self.v2.setYRange(min(-5, min(self.dataPV), min(self.dataOP)), max(2, max(self.dataPV), max(self.dataOP)), padding = 0.1)
+                self.v1.setYRange(min(-5, min(self.dataPV[-self.span:-1])), max(2, max(self.dataPV[-self.span:-1])), padding = 0.1)
+                self.v2.setYRange(min(-5, min(self.dataOP[-self.span:-1])), max(2, max(self.dataOP[-self.span:-1])), padding = 0.1)
+                self.v3.setYRange(min(self.dataError[-self.span:-1]), max(self.dataError[-self.span:-1]), padding = 0.1)
 
     def setParam(self, signal):
         if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
@@ -187,6 +197,8 @@ class mainWindow(QWidget):
             
     def graphConfig(self):
         self.graph = pg.GraphicsView()
+        self.graph.setWindowTitle('Variables(t)')
+        self.graph.show()
         self.l = pg.GraphicsLayout()
         self.graph.setCentralWidget(self.l)
         
@@ -194,20 +206,24 @@ class mainWindow(QWidget):
         self.a2 = pg.AxisItem('left')
         self.a2.setRange(-5,15)
         self.v2 = pg.ViewBox()
-        self.graph.setWindowTitle('Ampere(t)')
-        self.graph.show()
-        self.l.addItem(self.a2, row = 2, col = 1, rowspan = 1, colspan = 1)
+        self.l.addItem(self.a2, row = 2, col = 2, rowspan = 2, colspan = 1)
+
+        #v2 and a2 for error axis
+        self.a3 = pg.AxisItem('left')
+        self.a3.setRange(-5,15)
+        self.v3 = pg.ViewBox()
+        self.l.addItem(self.a3, row = 2, col = 1, rowspan = 2, colspan = 1)
         
         # blank x-axis to alignment
         ax = pg.AxisItem(orientation='bottom')
         ax.setPen('#000000')
-        pos = (2,2)
+        pos = (3,3)
         self.l.addItem(ax, *pos)
         
         #v1 is the main plot, it has its own box
         self.p1 = pg.PlotItem()
         self.v1 = self.p1.vb
-        self.l.addItem(self.p1, row = 2, col = 2, rowspan = 1, colspan = 1)
+        self.l.addItem(self.p1, row = 2, col = 3, rowspan = 2, colspan = 1)
 
         # time axis
         self.timeAxis = pg.DateAxisItem(orientation='bottom')
@@ -222,9 +238,14 @@ class mainWindow(QWidget):
         self.l.scene().addItem(self.v2)
         self.a2.linkToView(self.v2)
         self.v2.setXLink(self.v1)
+        #Link between v3 and v2 ad v1
+        self.l.scene().addItem(self.v3)
+        self.a3.linkToView(self.v3)
+        self.v3.setXLink(self.v1)
         #Axis label
         self.p1.getAxis('left').setLabel('SP, PV', color='#2E2EFE')
-        self.a2.setLabel('OP', color='#2EFE2E')
+        self.a2.setLabel('OP', color='#FEFE2E')
+        self.a3.setLabel('Error', color='#FE2E2E')
         self.v1.enableAutoRange(axis= pg.ViewBox.XYAxes, enable=True)
         self.v1.sigResized.connect(self.updateViews)
         self.updateViews()
@@ -233,6 +254,7 @@ class mainWindow(QWidget):
     
     def updateViews(self):
         self.v2.setGeometry(self.v1.sceneBoundingRect())
+        self.v3.setGeometry(self.v1.sceneBoundingRect())
 
         return
     
@@ -466,7 +488,7 @@ class mainInput(QWidget):
 
 
 class controlComplex(QThread):
-    signalBack_1 = Signal(float, float, float, float, bool)
+    signalBack_1 = Signal(float, float, float, float, float, bool)
     
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -518,10 +540,23 @@ class controlComplex(QThread):
             
             self.Kp = float(self.Kp)
             self.Tp = float(self.Tp)
+
+            self.K1     = float(self.K1)
+            self.T1     = float(self.T1)
+            self.T2     = float(self.T2)
+            self.KLIN   = float(self.KLIN)
+            self.KEXT   = float(self.KEXT)
+            self.KNL    = float(self.KNL)
+            self.NLFM   = float(self.NLFM)
+            self.NLGAIN = float(self.NLGAIN)
+            self.KGAP   = float(self.KGAP)
+            self.GAPLO  = float(self.GAPLO)
+            self.GAPHI  = float(self.GAPHI)
+            
             
 
             # debugging 24
-##            print(self.K1)
+            print(self.K1)
 ##            print(self.T1)
 ##            print(self.T2)
 ##            print(self.KLIN)
@@ -532,8 +567,9 @@ class controlComplex(QThread):
 ##            print(self.KGAP)
 ##            print(self.GAPLO)
 ##            print(self.GAPHI)
-
-            print('1st loop',self.Kp, end='\n\n')
+            print(type(self.K1))
+            
+            print('1st loop',self.K1, end='\n\n')
             
             pidOne.SP = self.SP
             pidOne.PV = [self.PVlast,self.PV]
@@ -547,14 +583,25 @@ class controlComplex(QThread):
                     n += 1
                     self.n = n
                     time.sleep(self.sample_time)
-                    
-                    OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,1,1,0) #pidOne.ioe = 0
+
+                    # Gain modifier
+                    if KLIN != 0:
+                        if KGAP != 0 and (GAPLO != 0 or GAPHI != 0):
+                            self.K1 = pidOne.narrowGain(self.SP, self.KLIN, self.KGAP, self.GAPLO, self.GAPHI)
+
+                        if NLFM != 0 and NLGAIN != 0:
+                            self.K1 = nonLinearGain(pidOne.error, self.KLIN, self.NLFM, self.NLGAIN) 
+
+                    # debugging 25
+                    OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,self.K1,self.T1,self.T2) #pidOne.ioe = 0
                     
                     # dead time shifter
                     self.bufferOP = pidOne.shiftBuffer(self.bufferOP, OP)
                     OP = self.bufferOP[0]
                     # dead time shifter-end
-                    
+                    print()
+                    print('error inside', pidOne.error)
+                    print()
                     PVnew = pidOne.systemModel(pidOne._Flakes__model, PVlast, OP, self.Kp, self.Tp)
 
                     self.OP = self.bufferOP[-1]
@@ -562,9 +609,9 @@ class controlComplex(QThread):
                     self.PVlast = PVlast
                     self.state = self.state
 
-                    print(self.state, end='\n\n')
+                    print('state auto',self.state, end='\n\n')
                     
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, self.startTime, self.state)
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
 
                     # debugging
 ##                    print(self.SP)
@@ -589,9 +636,9 @@ class controlComplex(QThread):
                     self.PV = PVnew
                     self.state = self.state
 
-                    print(self.state, end='\n\n')
+                    print('state man',self.state, end='\n\n')
                     
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, self.startTime, self.state)
+                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
                     time.sleep(self.sample_time)
                     
 
