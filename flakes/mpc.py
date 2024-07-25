@@ -8,6 +8,8 @@ Created on Thu May 30 11:20:50 2024
 
 import numpy as np
 from scipy.optimize import fsolve
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
 
 def __timeRoot(n):
     if (n==4):
@@ -26,11 +28,11 @@ def __timeRoot(n):
         tr = __timeRoot(4)
     return tr
 
-# test
+## test
 ##print(__timeRoot(0))  
 
-def timeMaker(i, cont = False, collocNodes = 4, timeStart = 0):
-    timeNode = __timeRoot(collocNodes)
+def timeMaker(i, cont = False, nodesNum = 4, timeStart = 0):
+    timeNode = __timeRoot(nodesNum)
     if cont:
         Ns = np.array([timeStart])
         for n in range(i):
@@ -39,11 +41,6 @@ def timeMaker(i, cont = False, collocNodes = 4, timeStart = 0):
     return timeNode+i-1
 
 # test 1
-##res = timeMaker(2, cont=True)
-##print(res)
-##res = timeMaker(2)
-##print(res)
-
 def __colloc(n):
     if (n==4):
         NC = np.array([[0.436,-0.281, 0.121], \
@@ -68,78 +65,66 @@ def __colloc(n):
 ##print(__colloc(6))
 
 def __funRoot(z, *param):
-    tau = param[0]
-    Kp = param[1]
-    u = param[2]
+    y0      = param[0]
+    u       = param[1]
+    Kp      = param[2]
+    tau     = param[3]
+    nodes   = param[4]
     
-    y0 = 5
-    N  = __colloc(4)
-    y  = z[0:3]
-    dy = z[3:6]
-
-    F = np.empty(6)
-    F[0:3] = np.dot(N,dy) - (y-y0)
-    F[3:6] = tau*dy + y - Kp*u
-    return F
-
-def __funFOST(z, *param):
-    n = param[0]
-    m = (n-1)*2
-    y = z[0:n-1]
-    dy = z[n-1:m]
-
-    y0 = 0
-    u = 4.0
-    N = __colloc(n)
+    y0 = y0
+    N  = __colloc(nodes)
+    m = (nodes-1)*2
+    y  = z[0:nodes-1]
+    dy = z[nodes-1:m]
 
     F = np.empty(m)
-    F[0:n-1] = 5*dy + y**2 - u
-    F[n-1:m] = np.dot(N, dy) - (y-y0)
+    F[0:nodes-1] = np.dot(N,dy) - (y-y0)
+    F[nodes-1:m] = tau*dy + y - Kp*u
     return F
 
-def CLCmethod(fun,
-              period,
-              y0 = 0,
-              nodes = 4,
-              arg = None
-              ):
-
-    y0 = y0
-    zGuess = np.ones(6)
+def collocation(fun,
+                time,
+                y0,
+                u,
+                Kp,
+                tau,
+                nodes,
+                ):
+    
+    zGuess = np.ones((nodes-1)*2)
     res = np.array([y0])
     
-    for i in range(1,period):
+    for i in range(1,time+1):
+        y0 = y0
         N = np.dot(__colloc(nodes),i)
-        z = fsolve(fun,zGuess,args=(arg))
-        res = np.append(res,z[0:3])
-        y0 = zGuess[2]
+        z = fsolve(fun,zGuess,args=(y0,u,Kp,tau, nodes))
+        res = np.append(res,z[0:nodes-1])
+        y0 = z[2]
     return res
 
-def CLCmethodPassing(fun,
-              period,
-              y0 = 0,
-              nodes = 4,
-              arg = []
-              ):
+# test
+k = 1
+t = 0.3
+u = 0
+for i in range(20):
+    k +=0.3
+    t += 0.4
+    u += 1
+    res = collocation(__funRoot,10,i,3,1,1,4)
     
-    zGuess = np.ones(nodes+2)
-    res = np.array([y0])
-    tau = arg[0]
-    Kp = arg[1]
-    u = arg[2]
-    
-    for i in range(1,period+1):
-        N = np.dot(__colloc(nodes),i)
-        z = fsolve(fun,zGuess,args=(tau, Kp, u))
-        res = np.append(res,z[0:3])
-        y0 = zGuess[2]
-    return res
-
-# test 3
-##print(CLCmethod(__funRoot,10,y0 = 5,nodes = 4, arg = 1))
-##print()
-# test 4
-##print(CLCmethodPassing(__funRoot, 10, y0 = 5, nodes = 4, arg = 1))
-##print()
-res = CLCmethodPassing(__funRoot, 3, y0 = 5, nodes = 4, arg =[1,1,1])
 print(res)
+print(type(res))
+time = timeMaker(10,cont=True)
+print(time)
+
+def __model(y,t,uf,Kp,taup):
+    u = uf
+    dydt = ((Kp*u - y)/taup)
+    return dydt
+
+ode = odeint(__model,5,list(time), args=(3,1,1))
+print(ode)
+
+plt.plot(time, res, color='green', marker='o')
+plt.plot(time, ode, color='red')
+plt.show()
