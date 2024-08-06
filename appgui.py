@@ -520,7 +520,6 @@ class controlComplex(QThread):
 
         self.Kp             = '1'
         self.Tp             = '1'
-        print(self.state, end='\n\n')
 
         
     def modeCall(self, instance):
@@ -545,6 +544,7 @@ class controlComplex(QThread):
             
             self.Kp = float(self.Kp)
             self.Tp = float(self.Tp)
+            
             self.deadTime = round(self.deadTime)
             print('receiver',self.deadTime)
             print('start', self.bufferOP)
@@ -557,6 +557,7 @@ class controlComplex(QThread):
                 for _ in range(len(self.bufferOP) - (self.deadTime+1)):
                     self.bufferOP = np.delete(self.bufferOP,0)
                     print('less', self.bufferOP)
+                    
             self.K1     = float(self.K1)
             self.T1     = float(self.T1)
             self.T2     = float(self.T2)
@@ -570,19 +571,22 @@ class controlComplex(QThread):
             self.GAPHI  = float(self.GAPHI)
             
             
-
-            # debugging 24
-            print(self.K1)
-            print(self.T1)
-            print(self.T2)
-            print(self.KLIN)
-            print(self.KEXT)
-            print(self.KNL)
-            print(self.NLFM)
-            print(self.NLGAIN)
-            print(self.KGAP)
-            print(self.GAPLO)
-            print(self.GAPHI)
+#!()
+##            print(self.K1)
+##            print(self.T1)
+##            print(self.T2)
+##            print(self.KLIN)
+##            print(self.KEXT)
+##            print(self.KNL)
+##            print(self.NLFM)
+##            print(self.NLGAIN)
+##            print(self.KGAP)
+##            print(self.GAPLO)
+##            print(self.GAPHI)
+##            print("model")
+##            print(self.Kp)
+##            print(self.Tp)
+#!()
             
             pidOne.SP = self.SP
             pidOne.PV = [self.PVlast,self.PV]
@@ -605,20 +609,30 @@ class controlComplex(QThread):
                         if self.NLFM != 0 and self.NLGAIN != 0:
                             self.K1 = pidOne.nonLinearGain(pidOne.error, self.KLIN, self.NLFM, self.NLGAIN) 
 
-                    print('After', self.K1)
-                    print()
+#!()
+##                    print('After', self.K1)
+##                    print()
+#!()                    
                     
-                    
-                    # debugging 25
                     OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,self.K1,self.T1,self.T2) #pidOne.ioe = 0
-                    print('After', pidOne.error)
+                    
                     # dead time shifter
                     self.bufferOP = pidOne.shiftBuffer(self.bufferOP, OP)
                     OP = self.bufferOP[0]
-                    # dead time shifter-end
+                    
+                    # engineering unit - controller to system
+##                    OPHI = 100
+##                    OPLO = 0
+##                    u = OP*(OPHI-OPLO)/100
+##                    y = PVlast*(PVEUHI-PVEULO)/100                             
       
                     PVnew = pidOne.systemModel(pidOne._Flakes__model, PVlast, OP, self.Kp, self.Tp)
 
+                    # engineering units settings - system to controller
+##                    self.PVEUHI = 100
+##                    self.PVEULO = 0
+##                    PVnew = ynew/(PVEUHI - PVEULO)
+                    
                     self.OP = self.bufferOP[-1]
                     self.PV = PVnew
                     self.PVlast = PVlast
@@ -626,12 +640,13 @@ class controlComplex(QThread):
                     
                     self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
 
-                    # debugging
+#!()
 ##                    print(self.SP)
 ##                    print(self.PV)
 ##                    print(self.PVlast)
 ##                    print(self.OP)
-                    print(self.state, end='\n\n')
+##                    print(self.state, end='\n\n')
+#!()
                     
                 elif (self.state == 'False') or (self.state == 'Man'):
                     i += 1
@@ -684,7 +699,6 @@ class controlComplex(QThread):
         self.Kp             = param["Kp"]
         self.Tp             = param["Tp"]
         self.deadTime       = param["Dp"]
-        print('receiver',self.deadTime)
         
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
