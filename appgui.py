@@ -1582,17 +1582,30 @@ class mainWindow(QWidget):
         self.intConst_1.KGAP.returnPressed.connect(setConst_1)
         self.intConst_1.GAPLO.returnPressed.connect(setConst_1)
         self.intConst_1.GAPHI.returnPressed.connect(setConst_1)
+        self.intConst_1.K1.setText(str(self.complex_1.K1))
+        self.intConst_1.T1.setText(str(self.complex_1.T1))
+        self.intConst_1.T2.setText(str(self.complex_1.T2))
+        self.intConst_1.KLIN.setText(str(self.complex_1.KLIN))
+        self.intConst_1.KEXT.setText(str(self.complex_1.KEXT))
+        self.intConst_1.KNL.setText(str(self.complex_1.KNL))
+        self.intConst_1.NLFM.setText(str(self.complex_1.NLFM))
+        self.intConst_1.NLGAIN.setText(str(self.complex_1.NLGAIN))
+        self.intConst_1.KGAP.setText(str(self.complex_1.KGAP))
+        self.intConst_1.GAPHI.setText(str(self.complex_1.GAPHI))
+        self.intConst_1.GAPLO.setText(str(self.complex_1.GAPLO))
 
         self.intConst_1.Kp.returnPressed.connect(setModel_1)
         self.intConst_1.Tp.returnPressed.connect(setModel_1)
         self.intConst_1.Dp.returnPressed.connect(setModel_1)
+        self.intConst_1.Kp.setText(str(self.complex_1.Kp))
+        self.intConst_1.Tp.setText(str(self.complex_1.Tp))
         self.intConst_1.Dp.setText(str(self.complex_1.deadTime))
         
         
         # |-* callback - future from graph: PV (MAN) PV,OP(AUTO)
-        self.controller_1.SP.setText(self.complex_1.SP)
+        self.controller_1.SP.setText(str(self.complex_1.SP))
 ##        self.controller_1.PV.setText(str(self.complex_1.PV))
-        self.controller_1.OP.setText(self.complex_1.OP)
+        self.controller_1.OP.setText(str(self.complex_1.OP))
         
 
 
@@ -1958,9 +1971,9 @@ class controlComplex(QThread):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.state          = False
-        self.SP             = '1'
-        self.PV             = '0'
-        self.OP             = '0'
+        self.SP             = 1
+        self.PV             = 0
+        self.OP             = 0
         self.PVlast         = None
         self.sample_time    = 1
         self.isRunning      = False
@@ -1968,24 +1981,26 @@ class controlComplex(QThread):
         self.startTime      = 0
         self.deadTime       = 0
         self.bufferOP       = np.tile(float(self.OP), round(self.deadTime)+1) #must be in seconds
-        self.K1             = '1'
-        self.T1             = '0'
-        self.T2             = '0'
-        self.KEXT           = '0'
-        self.KNL            = '0'
-        self.KLIN           = '0'
-        self.NLFM           = '0'
-        self.NLGAIN         = '0'
-        self.KGAP           = '0'
-        self.GAPLO          = '0'
-        self.GAPHI          = '0'
+        self.K1             = 1.5
+        self.T1             = 1
+        self.T2             = 0.3
+        self.KEXT           = 0
+        self.KNL            = 0
+        self.KLIN           = 0
+        self.NLFM           = 0
+        self.NLGAIN         = 0
+        self.KGAP           = 0
+        self.GAPLO          = 0
+        self.GAPHI          = 0
 
-        self.Kp             = '1'
-        self.Tp             = '1'
+        self.Kp             = 15.2
+        self.Tp             = 0.4
+        self.uDesign        = 0.263
+        self.PVDesign       = 14
 
         self.OPEUHI           = 100
         self.OPEULO           = 0
-        self.PVEUHI         = 2
+        self.PVEUHI         = 2.5
         self.PVEULO         = 0
 
         
@@ -2072,8 +2087,8 @@ class controlComplex(QThread):
                     time.sleep(self.sample_time)
                     
                     # engineering units settings - system to controller
-                    pidOne.PV[0] = pidOne.PV[0]*100
-                    pidOne.PV[1] = pidOne.PV[1]*100
+                    pidOne.PV[0] = pidOne.PV[0]/(self.PVEUHI - self.PVEULO)*100
+                    pidOne.PV[1] = pidOne.PV[1]/(self.PVEUHI - self.PVEULO)*100
                     pidOne.SP = pidOne.SP/(self.PVEUHI-self.PVEULO)*100
 
 #!()
@@ -2098,7 +2113,7 @@ class controlComplex(QThread):
 #!()                    
                     
                     OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,self.K1,self.T1,self.T2) #pidOne.ioe = 0
-                    PVlast = PVlast/100
+                    PVlast = PVlast/100*(self.PVEUHI - self.PVEULO)
                     
                     # dead time shifter
                     self.bufferOP = pidOne.shiftBuffer(self.bufferOP, OP)
@@ -2113,10 +2128,8 @@ class controlComplex(QThread):
 
                     # engineering unit - controller to system
                     u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
-                    self.uDesign = 1
                     u = u/100*self.uDesign
                     y = (PVlast-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
-                    self.PVDesign = 1
                     y = y/100*self.PVDesign
 
 #!()
@@ -2170,10 +2183,8 @@ class controlComplex(QThread):
 
                     # engineering unit - controller to system
                     u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
-                    self.uDesign = 1
                     u = u/100*self.uDesign
                     y = (self.PV-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
-                    self.PVDesign = 1
                     y = y/100*self.PVDesign
 
 #!()
@@ -2249,6 +2260,5 @@ if __name__ == "__main__":
         sys.exit(app.exec())
     except KeyboardInterrupt:
         window.complex_1.stop()
-
 
 
