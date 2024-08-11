@@ -1993,10 +1993,10 @@ class controlComplex(QThread):
         self.GAPLO          = 0
         self.GAPHI          = 0
 
-        self.Kp             = 15.2
+        self.Kp             = 0.00437
         self.Tp             = 0.4
-        self.uDesign        = 0.263
-        self.PVDesign       = 14
+        self.uDesign        = 915.33
+        self.PVDesign       = 22.5
 
         self.OPEUHI           = 100
         self.OPEULO           = 0
@@ -2138,6 +2138,7 @@ class controlComplex(QThread):
                     print("PV system IN",y)
                     print()
 #!()
+                    #Disturbance model - noise constructor
       
                     PVnew = pidOne.systemModel(pidOne._Flakes__model, y, u, self.Kp, self.Tp)
 
@@ -2260,5 +2261,7 @@ if __name__ == "__main__":
         sys.exit(app.exec())
     except KeyboardInterrupt:
         window.complex_1.stop()
+
+
 
 
