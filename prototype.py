@@ -101,11 +101,11 @@ class mainWindow(QWidget):
         self.complex_1.dexpansion = 3
         self.complex_1.PVEUHI = 2.5
 
-        self.complex_2 = controlComplex2(self)
+        self.complex_2 = controlComplex(self)
         self.complex_2.sample_time = 1
 
         # |-* Intermediete Paramaters Passing 
-        setParam_1 = functools.partial(self.setParam, self.controlSignal_1)
+        setParam_1 = functools.partial(self.setParam, self.controlSignal_1, self.controller_1)
         modeCall = functools.partial(self.complex_1.modeCall, self.controller_1.modeButton)
         setConst_1 = functools.partial(self.setConst, self.controlConst_1)
         setModel_1 = functools.partial(self.setModel, self.modelParam_1)
@@ -154,7 +154,7 @@ class mainWindow(QWidget):
         self.controller_1.OP.setText(str(self.complex_1.OP))
 
         # |-* Intermediete Paramaters Passing 
-        setParam_2 = functools.partial(self.setParam, self.controlSignal_2)
+        setParam_2 = functools.partial(self.setParam, self.controlSignal_2, self.controller_2)
         modeCall = functools.partial(self.complex_2.modeCall, self.controller_2.modeButton)
 
 
@@ -217,10 +217,10 @@ class mainWindow(QWidget):
                 self.v2.setYRange(min(-2, min(self.dataOP[-self.span:-1])), max(2, max(self.dataOP[-self.span:-1])), padding = 0.1)
                 self.v3.setYRange(min(-2, min(self.dataError[-self.span:-1])),max(2, max(self.dataOP[-self.span:-1])), padding = 0.1)
 
-    def setParam(self, signal):
+    def setParam(self, signal, obj):
 
-        if self.controller_1.SP.text() !='' and self.controller_1.PV.text() !='' and self.controller_1.OP.text() !='':
-            d = {"state": self.controller_1.modeButton.text(),"SP": float(self.controller_1.SP.text()),"PV": float(self.controller_1.PV.text()),"OP": float(self.controller_1.OP.text())} 
+        if obj.SP.text() !='' and obj.PV.text() !='' and obj.OP.text() !='':
+            d = {"state": obj.modeButton.text(),"SP": float(obj.SP.text()),"PV": float(obj.PV.text()),"OP": float(obj.OP.text())} 
             signal.emit(d)
         
 
@@ -853,325 +853,325 @@ class controlComplex(QThread):
 
 
 
-class controlComplex2(QThread):
-    signalBack_1 = Signal(float, float, float, float, float, str)
-    
-    def __init__(self, parent = None):
-        super().__init__(parent)
-        self.state          = False
-        self.SP             = 1
-        self.PV             = 0
-        self.OP             = 0
-        self.PVlast         = None
-        self.sample_time    = 1
-        self.isRunning      = False
-        self.n              = 0
-        self.startTime      = 0
-        self.deadTime       = 0
-        self.bufferOP       = np.tile(float(self.OP), round(self.deadTime)+1) #must be in seconds
-        self.K1             = 1.5
-        self.T1             = 1
-        self.T2             = 0.3
-        self.KEXT           = 0
-        self.KNL            = 0
-        self.KLIN           = 0
-        self.NLFM           = 0
-        self.NLGAIN         = 0
-        self.KGAP           = 0
-        self.GAPLO          = 0
-        self.GAPHI          = 0
-
-        self.Kp             = 0.00437
-        self.Tp             = 0.4
-        self.uDesign        = 915.33
-        self.PVDesign       = 22
-
-        self.OPEUHI           = 100
-        self.OPEULO           = 0
-        self.PVEUHI         = 2.5
-        self.PVEULO         = 0
-
-        self.j              = 0
-        self.didx           = 0
-        self.dexpansion     = 0
-
-        
-    def modeCall(self, instance):
-        self.state = instance.isChecked()
-        if instance.isChecked():
-            instance.setText('Auto')
-        else:
-            instance.setText('Man')
-        return self.state
-    
-    # P and ID controller
-    def run(self):
-        self.isRunning = True
-        pidOne = flakes.standard(self.sample_time)
-        modelD = flakes.disturbance()
-        d, didl = modelD.modelDFile(r'C:\Users\ssv\Documents\MRM\Flakes\DmodelKp2.csv')
-        d = d
-        while self.isRunning:
-            # signal updater  
-            self.state = str(self.state)
-            pidOne.name = 'rfopdt'
-            self.SP = float(self.SP)
-            self.PV = float(self.PV)
-            self.OP = float(self.OP)
-            
-            self.Kp = float(self.Kp)
-            self.Tp = float(self.Tp)
-            self.deadTime = round(self.deadTime)
-##            print('receiver',self.deadTime)
-##            print('start', self.bufferOP)
-            if len(self.bufferOP) < self.deadTime + 1:
-                for _ in range((self.deadTime+1) - len(self.bufferOP)):
-                    self.bufferOP = np.insert(self.bufferOP,0,self.bufferOP[0])
-##                    print('add', self.bufferOP)
-            if len(self.bufferOP) > self.deadTime + 1:
-##                print("delta len",len(self.bufferOP) - (self.deadTime+1)) 
-                for _ in range(len(self.bufferOP) - (self.deadTime+1)):
-                    self.bufferOP = np.delete(self.bufferOP,0)
-##                    print('less', self.bufferOP)
-                    
-            self.K1     = float(self.K1)
-            self.T1     = float(self.T1)
-            self.T2     = float(self.T2)
-            self.KLIN   = float(self.KLIN)
-            self.KEXT   = float(self.KEXT)
-            self.KNL    = float(self.KNL)
-            self.NLFM   = float(self.NLFM)
-            self.NLGAIN = float(self.NLGAIN)
-            self.KGAP   = float(self.KGAP)
-            self.GAPLO  = float(self.GAPLO)
-            self.GAPHI  = float(self.GAPHI)
-            
-            
-#!()
-            print()
-            print(self.SP)
-            print()
-##            print(self.K1)
-##            print(self.T1)
-##            print(self.T2)
-##            print(self.KLIN)
-##            print(self.KEXT)
-##            print(self.KNL)
-##            print(self.NLFM)
-##            print(self.NLGAIN)
-##            print(self.KGAP)
-##            print(self.GAPLO)
-##            print(self.GAPHI)
-##            print("model")
-##            print(self.Kp)
-##            print(self.Tp)
-#!()
-            # signal container
-            pidOne.SP = self.SP
-            pidOne.PV = [self.PVlast,self.PV]
-##            print("first time", pidOne.PV)
-            pidOne.OP = self.OP
-
-            # loop utility
-            i = 0
-            n = self.n
-            self.startTime = time.time()
-            while i < 1:
-                if (self.state == 'True') or (self.state == 'Auto') or (self.state == True):
-                    i += 1
-                    n += 1
-                    self.n = n
-                    time.sleep(self.sample_time)
-                    
-                    # engineering units settings - system to controller
-                    pidOne.PV[0] = pidOne.PV[0]/(self.PVEUHI - self.PVEULO)*100
-                    pidOne.PV[1] = pidOne.PV[1]/(self.PVEUHI - self.PVEULO)*100
-                    pidOne.SP = pidOne.SP/(self.PVEUHI-self.PVEULO)*100
-
-#!()
-##                    print()
-##                    print("pidOne.PV", pidOne.PV)
-##                    print("pidOne.SP", pidOne.SP)
-##                    print()
-#!()
-
-
-                    # Gain modifier
-                    if self.KLIN != 0:
-                        if self.KGAP != 0 and (self.GAPLO != 0 or self.GAPHI != 0):
-                            self.K1 = pidOne.narrowGain(pidOne.SP, pidOne.PV[1], self.KLIN, self.KGAP, self.GAPLO, self.GAPHI)
-
-                        if self.NLFM != 0 and self.NLGAIN != 0:
-                            self.K1 = pidOne.nonLinearGain(pidOne.error, self.KLIN, self.NLFM, self.NLGAIN) 
-
-#!()
-##                    print('After', self.K1)
-##                    print()
-#!()                    
-                    
-                    OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,self.K1,self.T1,self.T2) #pidOne.ioe = 0
-                    PVlast = PVlast/100*(self.PVEUHI - self.PVEULO)
-                    
-                    # dead time shifter
-                    self.bufferOP = pidOne.shiftBuffer(self.bufferOP, OP)
-                    OP = self.bufferOP[0]
-
-#!()
-##                    print()
-##                    print("OP controller IN",OP)
-##                    print("PVlast controller IN", PVlast)
-##                    print()
-#!()
-
-                    # engineering unit - controller to system
-                    u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
-                    u = u/100*self.uDesign
-                    y = (PVlast-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
-                    y = y/100*self.PVDesign
-
-#!()
-##                    print()
-##                    print("OP system IN",u)
-##                    print("PV system IN",y)
-##                    print()
-#!()
-                    #Disturbance model - noise constructor
-
-                    if True:
-                        self.j += 1
-                        if (self.j - i) == self.dexpansion:
-                            self.Kp = d[self.didx]
-                            self.didx += 1
-                            if self.didx == (len(d)-2):
-                                self.didx = 0
-                            self.j = 0
-                        else:
-                            self.Kp = self.Kp
-
-
-                    # process model
-                    PVnew = pidOne.systemModel(pidOne._Flakes__model, y, u, self.Kp, self.Tp)
-
-#!()
-##                    print("PVnew system OUT",PVnew)
-#!()
-                    # engineering units settings - system to controller
-                    PVnew = PVnew/self.PVDesign*100 #PVRaw = %
-                    PVnew = PVnew/100*(self.PVEUHI-self.PVEULO) + self.PVEULO
-#!()
-##                    print("PVnew controller OUT",PVnew)
-#!()
-                    self.OP = self.bufferOP[-1]
-                    self.PV = PVnew
-                    self.PVlast = PVlast
-                    self.state = self.state
-                    
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
-
-#!()
-##                    print(self.SP)
-##                    print(self.PV)
-##                    print(self.PVlast)
-##                    print(self.OP)
-##                    print(self.state, end='\n\n')
-#!()
-                    
-                elif (self.state == 'False') or (self.state == 'Man') or (self.state == False):
-                    i += 1
-                    n += 1
-                    self.n = n
-
-                    # dead time shifter
-                    self.bufferOP = pidOne.shiftBuffer(self.bufferOP, pidOne.OP)
-                    OP = self.bufferOP[0]
-                    # dead time shifter-end
-#!()
-##                    print()
-##                    print("OP controller IN",OP)
-##                    print("PVlast controller IN", self.PV)
-##                    print()
-#!()
-
-                    # engineering unit - controller to system
-                    u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
-                    u = u/100*self.uDesign
-                    y = (self.PV-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
-                    y = y/100*self.PVDesign
-
-#!()
-##                    print()
-##                    print("OP system IN",u)
-##                    print("PV system IN",y)
-##                    print()
-#!()
-                    # disturbance model - noise constructor
-                    
-                    if True:
-                        self.j += 1
-                        if (self.j - i) == self.dexpansion:
-                            self.Kp = d[self.didx]
-                            self.didx += 1
-                            if self.didx == (len(d)-2):
-                                self.didx = 0
-                            self.j = 0
-                        else:
-                            self.Kp = self.Kp
-
-                    
-                    PVnew = pidOne.systemModel(pidOne._Flakes__model, y, u, self.Kp, self.Tp)
-
-#!()
-##                    print("PVnew system OUT",PVnew)
-#!()
-                    # engineering units settings - system to controller
-                    PVnew = PVnew/self.PVDesign*100 #PVRaw = %
-                    PVnew = PVnew/100*(self.PVEUHI-self.PVEULO) + self.PVEULO
-#!()
-##                    print("PVnew controller OUT",PVnew)
-#!()
-                    
-                    self.PVlast = self.PV
-                    self.PV = PVnew
-                    self.state = self.state
-                    
-                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
-                    time.sleep(self.sample_time)
-                    
-
-    def stop(self):
-        self.isRunning = False
-        self.quit()
-        self.terminate()
-    
-    @Slot(dict)
-    def dataReceiver(self, param):
-        self.state = param["state"]
-        self.SP = param["SP"]
-        self.PV = param["PV"]
-        self.OP = param["OP"]
-        print()
-        print(param)
-        print()
-
-    @Slot(dict)
-    def constReceiver(self, param):
-        self.K1         = param["K1"]
-        self.T1         = param["T1"]
-        self.T2         = param["T2"]
-        self.KLIN       = param["KLIN"]
-        self.KEXT       = param["KEXT"]
-        self.KNL        = param["KNL"]
-        self.NLFM       = param["NLFM"]
-        self.NLGAIN     = param["NLGAIN"]
-        self.KGAP       = param["KGAP"]
-        self.GAPLO      = param["GAPLO"]
-        self.GAPHI      = param["GAPHI"]
-
-    @Slot(dict)
-    def modelReceiver(self, param):
-        self.Kp             = param["Kp"]
-        self.Tp             = param["Tp"]
-        self.deadTime       = param["Dp"]
+##class controlComplex2(QThread):
+##    signalBack_1 = Signal(float, float, float, float, float, str)
+##    
+##    def __init__(self, parent = None):
+##        super().__init__(parent)
+##        self.state          = False
+##        self.SP             = 1
+##        self.PV             = 0
+##        self.OP             = 0
+##        self.PVlast         = None
+##        self.sample_time    = 1
+##        self.isRunning      = False
+##        self.n              = 0
+##        self.startTime      = 0
+##        self.deadTime       = 0
+##        self.bufferOP       = np.tile(float(self.OP), round(self.deadTime)+1) #must be in seconds
+##        self.K1             = 1.5
+##        self.T1             = 1
+##        self.T2             = 0.3
+##        self.KEXT           = 0
+##        self.KNL            = 0
+##        self.KLIN           = 0
+##        self.NLFM           = 0
+##        self.NLGAIN         = 0
+##        self.KGAP           = 0
+##        self.GAPLO          = 0
+##        self.GAPHI          = 0
+##
+##        self.Kp             = 0.00437
+##        self.Tp             = 0.4
+##        self.uDesign        = 915.33
+##        self.PVDesign       = 22
+##
+##        self.OPEUHI           = 100
+##        self.OPEULO           = 0
+##        self.PVEUHI         = 2.5
+##        self.PVEULO         = 0
+##
+##        self.j              = 0
+##        self.didx           = 0
+##        self.dexpansion     = 0
+##
+##        
+##    def modeCall(self, instance):
+##        self.state = instance.isChecked()
+##        if instance.isChecked():
+##            instance.setText('Auto')
+##        else:
+##            instance.setText('Man')
+##        return self.state
+##    
+##    # P and ID controller
+##    def run(self):
+##        self.isRunning = True
+##        pidOne = flakes.standard(self.sample_time)
+##        modelD = flakes.disturbance()
+##        d, didl = modelD.modelDFile(r'C:\Users\ssv\Documents\MRM\Flakes\DmodelKp2.csv')
+##        d = d
+##        while self.isRunning:
+##            # signal updater  
+##            self.state = str(self.state)
+##            pidOne.name = 'rfopdt'
+##            self.SP = float(self.SP)
+##            self.PV = float(self.PV)
+##            self.OP = float(self.OP)
+##            
+##            self.Kp = float(self.Kp)
+##            self.Tp = float(self.Tp)
+##            self.deadTime = round(self.deadTime)
+####            print('receiver',self.deadTime)
+####            print('start', self.bufferOP)
+##            if len(self.bufferOP) < self.deadTime + 1:
+##                for _ in range((self.deadTime+1) - len(self.bufferOP)):
+##                    self.bufferOP = np.insert(self.bufferOP,0,self.bufferOP[0])
+####                    print('add', self.bufferOP)
+##            if len(self.bufferOP) > self.deadTime + 1:
+####                print("delta len",len(self.bufferOP) - (self.deadTime+1)) 
+##                for _ in range(len(self.bufferOP) - (self.deadTime+1)):
+##                    self.bufferOP = np.delete(self.bufferOP,0)
+####                    print('less', self.bufferOP)
+##                    
+##            self.K1     = float(self.K1)
+##            self.T1     = float(self.T1)
+##            self.T2     = float(self.T2)
+##            self.KLIN   = float(self.KLIN)
+##            self.KEXT   = float(self.KEXT)
+##            self.KNL    = float(self.KNL)
+##            self.NLFM   = float(self.NLFM)
+##            self.NLGAIN = float(self.NLGAIN)
+##            self.KGAP   = float(self.KGAP)
+##            self.GAPLO  = float(self.GAPLO)
+##            self.GAPHI  = float(self.GAPHI)
+##            
+##            
+###!()
+##            print()
+##            print(self.SP)
+##            print()
+####            print(self.K1)
+####            print(self.T1)
+####            print(self.T2)
+####            print(self.KLIN)
+####            print(self.KEXT)
+####            print(self.KNL)
+####            print(self.NLFM)
+####            print(self.NLGAIN)
+####            print(self.KGAP)
+####            print(self.GAPLO)
+####            print(self.GAPHI)
+####            print("model")
+####            print(self.Kp)
+####            print(self.Tp)
+###!()
+##            # signal container
+##            pidOne.SP = self.SP
+##            pidOne.PV = [self.PVlast,self.PV]
+####            print("first time", pidOne.PV)
+##            pidOne.OP = self.OP
+##
+##            # loop utility
+##            i = 0
+##            n = self.n
+##            self.startTime = time.time()
+##            while i < 1:
+##                if (self.state == 'True') or (self.state == 'Auto') or (self.state == True):
+##                    i += 1
+##                    n += 1
+##                    self.n = n
+##                    time.sleep(self.sample_time)
+##                    
+##                    # engineering units settings - system to controller
+##                    pidOne.PV[0] = pidOne.PV[0]/(self.PVEUHI - self.PVEULO)*100
+##                    pidOne.PV[1] = pidOne.PV[1]/(self.PVEUHI - self.PVEULO)*100
+##                    pidOne.SP = pidOne.SP/(self.PVEUHI-self.PVEULO)*100
+##
+###!()
+####                    print()
+####                    print("pidOne.PV", pidOne.PV)
+####                    print("pidOne.SP", pidOne.SP)
+####                    print()
+###!()
+##
+##
+##                    # Gain modifier
+##                    if self.KLIN != 0:
+##                        if self.KGAP != 0 and (self.GAPLO != 0 or self.GAPHI != 0):
+##                            self.K1 = pidOne.narrowGain(pidOne.SP, pidOne.PV[1], self.KLIN, self.KGAP, self.GAPLO, self.GAPHI)
+##
+##                        if self.NLFM != 0 and self.NLGAIN != 0:
+##                            self.K1 = pidOne.nonLinearGain(pidOne.error, self.KLIN, self.NLFM, self.NLGAIN) 
+##
+###!()
+####                    print('After', self.K1)
+####                    print()
+###!()                    
+##                    
+##                    OP, PVlast, pidOne.ioe = pidOne.pid(pidOne.SP, pidOne.OP, pidOne.ioe, pidOne.PV,self.K1,self.T1,self.T2) #pidOne.ioe = 0
+##                    PVlast = PVlast/100*(self.PVEUHI - self.PVEULO)
+##                    
+##                    # dead time shifter
+##                    self.bufferOP = pidOne.shiftBuffer(self.bufferOP, OP)
+##                    OP = self.bufferOP[0]
+##
+###!()
+####                    print()
+####                    print("OP controller IN",OP)
+####                    print("PVlast controller IN", PVlast)
+####                    print()
+###!()
+##
+##                    # engineering unit - controller to system
+##                    u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
+##                    u = u/100*self.uDesign
+##                    y = (PVlast-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
+##                    y = y/100*self.PVDesign
+##
+###!()
+####                    print()
+####                    print("OP system IN",u)
+####                    print("PV system IN",y)
+####                    print()
+###!()
+##                    #Disturbance model - noise constructor
+##
+##                    if True:
+##                        self.j += 1
+##                        if (self.j - i) == self.dexpansion:
+##                            self.Kp = d[self.didx]
+##                            self.didx += 1
+##                            if self.didx == (len(d)-2):
+##                                self.didx = 0
+##                            self.j = 0
+##                        else:
+##                            self.Kp = self.Kp
+##
+##
+##                    # process model
+##                    PVnew = pidOne.systemModel(pidOne._Flakes__model, y, u, self.Kp, self.Tp)
+##
+###!()
+####                    print("PVnew system OUT",PVnew)
+###!()
+##                    # engineering units settings - system to controller
+##                    PVnew = PVnew/self.PVDesign*100 #PVRaw = %
+##                    PVnew = PVnew/100*(self.PVEUHI-self.PVEULO) + self.PVEULO
+###!()
+####                    print("PVnew controller OUT",PVnew)
+###!()
+##                    self.OP = self.bufferOP[-1]
+##                    self.PV = PVnew
+##                    self.PVlast = PVlast
+##                    self.state = self.state
+##                    
+##                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
+##
+###!()
+####                    print(self.SP)
+####                    print(self.PV)
+####                    print(self.PVlast)
+####                    print(self.OP)
+####                    print(self.state, end='\n\n')
+###!()
+##                    
+##                elif (self.state == 'False') or (self.state == 'Man') or (self.state == False):
+##                    i += 1
+##                    n += 1
+##                    self.n = n
+##
+##                    # dead time shifter
+##                    self.bufferOP = pidOne.shiftBuffer(self.bufferOP, pidOne.OP)
+##                    OP = self.bufferOP[0]
+##                    # dead time shifter-end
+###!()
+####                    print()
+####                    print("OP controller IN",OP)
+####                    print("PVlast controller IN", self.PV)
+####                    print()
+###!()
+##
+##                    # engineering unit - controller to system
+##                    u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
+##                    u = u/100*self.uDesign
+##                    y = (self.PV-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
+##                    y = y/100*self.PVDesign
+##
+###!()
+####                    print()
+####                    print("OP system IN",u)
+####                    print("PV system IN",y)
+####                    print()
+###!()
+##                    # disturbance model - noise constructor
+##                    
+##                    if True:
+##                        self.j += 1
+##                        if (self.j - i) == self.dexpansion:
+##                            self.Kp = d[self.didx]
+##                            self.didx += 1
+##                            if self.didx == (len(d)-2):
+##                                self.didx = 0
+##                            self.j = 0
+##                        else:
+##                            self.Kp = self.Kp
+##
+##                    
+##                    PVnew = pidOne.systemModel(pidOne._Flakes__model, y, u, self.Kp, self.Tp)
+##
+###!()
+####                    print("PVnew system OUT",PVnew)
+###!()
+##                    # engineering units settings - system to controller
+##                    PVnew = PVnew/self.PVDesign*100 #PVRaw = %
+##                    PVnew = PVnew/100*(self.PVEUHI-self.PVEULO) + self.PVEULO
+###!()
+####                    print("PVnew controller OUT",PVnew)
+###!()
+##                    
+##                    self.PVlast = self.PV
+##                    self.PV = PVnew
+##                    self.state = self.state
+##                    
+##                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
+##                    time.sleep(self.sample_time)
+##                    
+##
+##    def stop(self):
+##        self.isRunning = False
+##        self.quit()
+##        self.terminate()
+##    
+##    @Slot(dict)
+##    def dataReceiver(self, param):
+##        self.state = param["state"]
+##        self.SP = param["SP"]
+##        self.PV = param["PV"]
+##        self.OP = param["OP"]
+##        print()
+##        print(param)
+##        print()
+##
+##    @Slot(dict)
+##    def constReceiver(self, param):
+##        self.K1         = param["K1"]
+##        self.T1         = param["T1"]
+##        self.T2         = param["T2"]
+##        self.KLIN       = param["KLIN"]
+##        self.KEXT       = param["KEXT"]
+##        self.KNL        = param["KNL"]
+##        self.NLFM       = param["NLFM"]
+##        self.NLGAIN     = param["NLGAIN"]
+##        self.KGAP       = param["KGAP"]
+##        self.GAPLO      = param["GAPLO"]
+##        self.GAPHI      = param["GAPHI"]
+##
+##    @Slot(dict)
+##    def modelReceiver(self, param):
+##        self.Kp             = param["Kp"]
+##        self.Tp             = param["Tp"]
+##        self.deadTime       = param["Dp"]
 
         
 import signal
