@@ -39,7 +39,9 @@ class mainWindow(QWidget):
 
     controlSignal_2     = Signal(dict)
     controlConst_2      = Signal(dict)
-    modelParam_2        = Signal(dict) 
+    modelParam_2        = Signal(dict)
+
+    PVCon               = Signal(bool)
         
     def __init__(self):
         super().__init__()
@@ -110,9 +112,12 @@ class mainWindow(QWidget):
 
         #-* Backgroudn Actions
         self.complex_1 = controlComplex(self)
+        self.complex_1.uConnected = False
 
         self.complex_2 = controlComplex(self)
+        self.complex_2.SPConnected = True
         self.complex_2.dexpansion = 3
+        self.complex_2.sample_time = 1
 
 
         # |-* Intermediete Paramaters Passing 
@@ -171,6 +176,8 @@ class mainWindow(QWidget):
         setConst_2 = functools.partial(self.setConst, self.controlConst_2, self.intConst_2)
         setModel_2 = functools.partial(self.setModel, self.modelParam_2, self.intConst_2)
 
+##        setCas_2 = functools.partial(self.complex_1.cascadeRec, self.complex_1)
+
         
         self.intConst_2.K1.returnPressed.connect(setConst_2)
         self.intConst_2.T1.returnPressed.connect(setConst_2)
@@ -216,12 +223,14 @@ class mainWindow(QWidget):
         self.controlConst_1.connect(self.complex_1.constReceiver)
         self.modelParam_1.connect(self.complex_1.modelReceiver)
         self.complex_1.signalBack_1.connect(self.setData)
+        self.complex_1.signalBack_1.connect(self.complex_2.cascadeRecv)
         self.complex_1.start()
 
         self.controlSignal_2.connect(self.complex_2.dataReceiver)
         self.controlConst_2.connect(self.complex_2.constReceiver)
         self.modelParam_2.connect(self.complex_2.modelReceiver)
         self.complex_2.signalBack_1.connect(self.setDataTwo)
+        self.complex_2.signalBack_1.connect(self.complex_1.cascadeRecv)
         self.complex_2.start()
 
         
@@ -402,7 +411,7 @@ class mainWindow(QWidget):
         self.p1upError.setAxisItems({'bottom': self.timeAxisUpError})
 
         # Mouse interaction
-        self.graph.scene().sigMouseClicked.connect(self._on_mouse_clicked)
+        self.upper.scene().sigMouseClicked.connect(self._on_mouse_clicked)
         
         #grid
         self.p1.showGrid(x=True, y=True)
@@ -459,11 +468,11 @@ class mainWindow(QWidget):
     
     def _on_mouse_clicked(self, event):
         self.graphicState = True
-        self.graphicState2 = True
+        self.graphicState_2 = True
         if event.double():
             self.graphicState = False
-            self.graphicState2 = True
-        return self.graphicState, self.graphicState2
+            self.graphicState_2 = False
+        return self.graphicState, self.graphicState_2
 
 
 class mainInput(QWidget):
@@ -696,6 +705,7 @@ class mainInput(QWidget):
 
 class controlComplex(QThread):
     signalBack_1 = Signal(float, float, float, float, float, str)
+    PVConnectedFlag = Signal(bool)
     
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -737,6 +747,10 @@ class controlComplex(QThread):
         self.didx           = 0
         self.dexpansion     = 0
 
+        self.OPCas          = None
+        self.uCas           = None
+        self.SPConnected    = False
+        self.uConnected     = False
         
     def modeCall(self, instance):
         self.state = instance.isChecked()
@@ -760,11 +774,14 @@ class controlComplex(QThread):
         pidOne = flakes.standard(self.sample_time)
         modelD = flakes.disturbance()
         d, didl = modelD.modelDFile(r'C:\Users\ssv\Documents\MRM\Flakes\DmodelKp2.csv')
-        d = d
         while self.isRunning:
             # signal updater  
             self.state = str(self.state)
             pidOne.name = 'rfopdt'
+
+            if (self.cascade == True or self.cascade == 'Cascade' or self.cascade == 'True') and self.OPCas != None:
+                self.SP = self.OPCas/100*(self.PVEUHI - self.PVEULO)
+                
             self.SP = float(self.SP)
             self.PV = float(self.PV)
             self.OP = float(self.OP)
@@ -772,17 +789,13 @@ class controlComplex(QThread):
             self.Kp = float(self.Kp)
             self.Tp = float(self.Tp)
             self.deadTime = round(self.deadTime)
-##            print('receiver',self.deadTime)
-##            print('start', self.bufferOP)
+
             if len(self.bufferOP) < self.deadTime + 1:
                 for _ in range((self.deadTime+1) - len(self.bufferOP)):
                     self.bufferOP = np.insert(self.bufferOP,0,self.bufferOP[0])
-##                    print('add', self.bufferOP)
             if len(self.bufferOP) > self.deadTime + 1:
-##                print("delta len",len(self.bufferOP) - (self.deadTime+1)) 
                 for _ in range(len(self.bufferOP) - (self.deadTime+1)):
                     self.bufferOP = np.delete(self.bufferOP,0)
-##                    print('less', self.bufferOP)
                     
             self.K1     = float(self.K1)
             self.T1     = float(self.T1)
@@ -798,28 +811,27 @@ class controlComplex(QThread):
             
             
 #!()
-            print()
-            print(self.SP)
-            print()
-            print(self.K1)
-            print(self.T1)
-            print(self.T2)
-            print(self.KLIN)
-            print(self.KEXT)
-            print(self.KNL)
-            print(self.NLFM)
-            print(self.NLGAIN)
-            print(self.KGAP)
-            print(self.GAPLO)
-            print(self.GAPHI)
-            print("model")
-            print(self.Kp)
-            print(self.Tp)
+##            print()
+##            print(self.SP)
+##            print()
+##            print(self.K1)
+##            print(self.T1)
+##            print(self.T2)
+##            print(self.KLIN)
+##            print(self.KEXT)
+##            print(self.KNL)
+##            print(self.NLFM)
+##            print(self.NLGAIN)
+##            print(self.KGAP)
+##            print(self.GAPLO)
+##            print(self.GAPHI)
+##            print("model")
+##            print(self.Kp)
+##            print(self.Tp)
 #!()
             # signal container
             pidOne.SP = self.SP
             pidOne.PV = [self.PVlast,self.PV]
-##            print("first time", pidOne.PV)
             pidOne.OP = self.OP
 
             # loop utility
@@ -876,6 +888,8 @@ class controlComplex(QThread):
                     # engineering unit - controller to system
                     u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
                     u = u/100*self.uDesign
+                    if self.uConnected == True and self.uCas != None:
+                        u = self.uCas
                     y = (PVlast-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
                     y = y/100*self.PVDesign
 
@@ -945,6 +959,8 @@ class controlComplex(QThread):
                     # engineering unit - controller to system
                     u = (OP-self.OPEULO)*100/(self.OPEUHI-self.OPEULO)
                     u = u/100*self.uDesign
+                    if self.uConnected == True and self.uCas != None:
+                        u = self.uCas
                     y = (self.PV-self.PVEULO)*100/(self.PVEUHI-self.PVEULO) #y is PVRaw = %
                     y = y/100*self.PVDesign
 
@@ -1023,9 +1039,10 @@ class controlComplex(QThread):
         self.Tp             = param["Tp"]
         self.deadTime       = param["Dp"]
 
-##    def cascadeRec(self, sp, pv, op, err, n, sts):
-##
-##        
+    @Slot(float,float,float,float,float,str)
+    def cascadeRecv(self, sp, pv, op, err, n, sts):
+        self.OPCas  = op
+        self.uCas   = pv
 
 ##class controlComplex2(QThread):
 ##    signalBack_2 = Signal(float, float, float, float, float, str)
