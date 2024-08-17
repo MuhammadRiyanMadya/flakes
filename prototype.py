@@ -38,21 +38,34 @@ class mainWindow(QWidget):
     modelParam_1        = Signal(dict) 
 
     controlSignal_2     = Signal(dict)
+    controlConst_2      = Signal(dict)
+    modelParam_2        = Signal(dict) 
         
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Real-Time Process Control Designer")
-        self.dataSP     = []
-        self.dataPV     = []
-        self.dataOP     = []
-        self.dataError  = []
-        self.errHor     = []
-        self.dataTime   = []
-        self.span       = 60
+        self.dataSP             = []
+        self.dataPV             = []
+        self.dataOP             = []
+        self.dataError          = []
+        self.errHor             = []
+        self.dataTime           = []
+        self.span               = 60
+        self.updaterPV          = None
+        self.updaterOP          = None
+        self.graphicState       = False
 
-        self.updaterPV = None
-        self.updaterOP = None
-        self.graphicState = False
+        self.dataSP_2           = []
+        self.dataPV_2           = []
+        self.dataOP_2           = []
+        self.dataError_2        = []
+        self.errHor_2           = []
+        self.dataTime_2         = []
+        self.span_2             = 60
+
+        self.updaterPV_2        = None
+        self.updaterOP_2        = None
+        self.graphicState_2     = False
         
 
         #-* Main layout and Widget
@@ -69,7 +82,7 @@ class mainWindow(QWidget):
         self.controller_1Box = self.controller_1.controlConfig()
 
         self.controller_2 = mainInput('Process Control 2', self)
-        self.controller_2Box = self.controller_2.controlConfig()
+        self.controller_2Box = self.controller_2.controlConfig(casButtonAdd = True)
 
         self.intConst_1 = mainInput('Signal 1', self)
         self.intConst_1Box = self.intConst_1.tabBuilder()
@@ -97,18 +110,16 @@ class mainWindow(QWidget):
 
         #-* Backgroudn Actions
         self.complex_1 = controlComplex(self)
-        self.complex_1.sample_time = 1
-        self.complex_1.dexpansion = 3
-        self.complex_1.PVEUHI = 2.5
 
         self.complex_2 = controlComplex(self)
-        self.complex_2.sample_time = 1
+        self.complex_2.dexpansion = 3
+
 
         # |-* Intermediete Paramaters Passing 
         setParam_1 = functools.partial(self.setParam, self.controlSignal_1, self.controller_1)
         modeCall = functools.partial(self.complex_1.modeCall, self.controller_1.modeButton)
-        setConst_1 = functools.partial(self.setConst, self.controlConst_1)
-        setModel_1 = functools.partial(self.setModel, self.modelParam_1)
+        setConst_1 = functools.partial(self.setConst, self.controlConst_1, self.intConst_1)
+        setModel_1 = functools.partial(self.setModel, self.modelParam_1, self.intConst_1)
 
 
         # |-* Signal Sender
@@ -156,13 +167,46 @@ class mainWindow(QWidget):
         # |-* Intermediete Paramaters Passing 
         setParam_2 = functools.partial(self.setParam, self.controlSignal_2, self.controller_2)
         modeCall = functools.partial(self.complex_2.modeCall, self.controller_2.modeButton)
+        casCall = functools.partial(self.complex_2.casCall, self.controller_2.casButton)
+        setConst_2 = functools.partial(self.setConst, self.controlConst_2, self.intConst_2)
+        setModel_2 = functools.partial(self.setModel, self.modelParam_2, self.intConst_2)
 
+        
+        self.intConst_2.K1.returnPressed.connect(setConst_2)
+        self.intConst_2.T1.returnPressed.connect(setConst_2)
+        self.intConst_2.T2.returnPressed.connect(setConst_2)
+        self.intConst_2.KLIN.returnPressed.connect(setConst_2)
+        self.intConst_2.KEXT.returnPressed.connect(setConst_2)
+        self.intConst_2.KNL.returnPressed.connect(setConst_2)
+        self.intConst_2.NLFM.returnPressed.connect(setConst_2)
+        self.intConst_2.NLGAIN.returnPressed.connect(setConst_2)
+        self.intConst_2.KGAP.returnPressed.connect(setConst_2)
+        self.intConst_2.GAPLO.returnPressed.connect(setConst_2)
+        self.intConst_2.GAPHI.returnPressed.connect(setConst_2)
+        self.intConst_2.K1.setText(str(self.complex_2.K1))
+        self.intConst_2.T1.setText(str(self.complex_2.T1))
+        self.intConst_2.T2.setText(str(self.complex_2.T2))
+        self.intConst_2.KLIN.setText(str(self.complex_2.KLIN))
+        self.intConst_2.KEXT.setText(str(self.complex_2.KEXT))
+        self.intConst_2.KNL.setText(str(self.complex_2.KNL))
+        self.intConst_2.NLFM.setText(str(self.complex_2.NLFM))
+        self.intConst_2.NLGAIN.setText(str(self.complex_2.NLGAIN))
+        self.intConst_2.KGAP.setText(str(self.complex_2.KGAP))
+        self.intConst_2.GAPHI.setText(str(self.complex_2.GAPHI))
+        self.intConst_2.GAPLO.setText(str(self.complex_2.GAPLO))
 
+        self.intConst_2.Kp.returnPressed.connect(setModel_2)
+        self.intConst_2.Tp.returnPressed.connect(setModel_2)
+        self.intConst_2.Dp.returnPressed.connect(setModel_2)
+        self.intConst_2.Kp.setText(str(self.complex_2.Kp))
+        self.intConst_2.Tp.setText(str(self.complex_2.Tp))
+        self.intConst_2.Dp.setText(str(self.complex_2.deadTime))
         # |-* Signal Sender
         self.controller_2.SP.returnPressed.connect(setParam_2)
         self.controller_2.PV.returnPressed.connect(setParam_2)
         self.controller_2.OP.returnPressed.connect(setParam_2)
         self.controller_2.modeButton.clicked.connect(modeCall)
+        self.controller_2.casButton.clicked.connect(casCall)
 
         self.controller_2.SP.setText(str(self.complex_2.SP))
 ##        self.controller_1.PV.setText(str(self.complex_1.PV))
@@ -175,7 +219,9 @@ class mainWindow(QWidget):
         self.complex_1.start()
 
         self.controlSignal_2.connect(self.complex_2.dataReceiver)
-##        self.complex_2.signalBack_2.connect(self.setData)
+        self.controlConst_2.connect(self.complex_2.constReceiver)
+        self.modelParam_2.connect(self.complex_2.modelReceiver)
+        self.complex_2.signalBack_1.connect(self.setDataTwo)
         self.complex_2.start()
 
         
@@ -204,38 +250,76 @@ class mainWindow(QWidget):
             self.controller_1.OP.setText(str(self.updaterOP))
         
         # |-* plot
-        self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataSP, pen='#2E2EFE')) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
-        self.v1.addItem(pg.PlotCurveItem(self.dataTime, self.dataPV, pen='#2EFEF7'))
-        self.v2.addItem(pg.PlotCurveItem(self.dataTime, self.dataOP, pen='#FEFE2E'))
-        self.v3.addItem(pg.PlotCurveItem(self.dataTime, self.dataError, pen='#FE2E2E'))
-        self.v3.addItem(pg.PlotCurveItem(self.dataTime, self.errHor, pen='#962efe'))
+        self.v1up.addItem(pg.PlotCurveItem(self.dataTime, self.dataSP, pen='#FFFFFF')) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
+        self.v1up.addItem(pg.PlotCurveItem(self.dataTime, self.dataPV, pen='#FF007F'))
+##        self.v2.addItem(pg.PlotCurveItem(self.dataTime, self.dataOP, pen='#FEFE2E'))
+        self.v1upError.addItem(pg.PlotCurveItem(self.dataTime, self.dataError, pen='#FFFFFF'))
+        self.v1upError.addItem(pg.PlotCurveItem(self.dataTime, self.errHor, pen='#00FF00'))
 
         if self.graphicState != True and len(self.dataTime) >= 11:
             if self.dataTime[-1] != self.span:
-                self.v1.setXRange(self.dataTime[-1] - self.span, self.dataTime[-1], padding = 0.3)
-                self.v1.setYRange(min(-2, min(self.dataPV[-self.span:-1])), max(2, max(self.dataPV[-self.span:-1])), padding = 0.1)
-                self.v2.setYRange(min(-2, min(self.dataOP[-self.span:-1])), max(2, max(self.dataOP[-self.span:-1])), padding = 0.1)
-                self.v3.setYRange(min(-2, min(self.dataError[-self.span:-1])),max(2, max(self.dataOP[-self.span:-1])), padding = 0.1)
+                self.v1up.setXRange(self.dataTime[-1] - self.span, self.dataTime[-1], padding = 0.3)
+                self.v1up.setYRange(min(self.dataPV[-self.span:-1]), max(self.dataPV[-self.span:-1]), padding = 0.1)
+##                self.v2.setYRange(min(-5,min(self.dataOP[-self.span:-1])), max(105, max(self.dataOP[-self.span:-1])), padding = 0.1)
+                self.v1upError.setYRange(min(self.dataError[-self.span:-1]),max(self.dataError[-self.span:-1]), padding = 0.1)
+                
+    @Slot(float,float,float,float,float,str)
+    def setDataTwo(self, sp, pv, op, err, n, sts):
+        print("second thread", pv)
+        self.dataSP_2.append(sp)
+        self.dataPV_2.append(pv)
+        self.dataOP_2.append(op)
+        self.dataError_2.append(round(err,4))
+        if err == 0:
+            self.errHor_2.append(0)
+        else:
+            self.errHor_2.append(0)    
+        self.dataTime_2.append(n)
+
+        # |-* updater display
+        self.updaterPV_2 = round(pv,6)
+        self.updaterOP_2 = round(op,6)
+        self.updaterState_2 = sts
+        
+        if self.updaterPV_2 == None:
+            self.controller_2.PV.setText("BadValue")
+            self.controller_2.OP.setText("BadValue")
+        self.controller_2.PV.setText(str(self.updaterPV_2))
+        if self.updaterState_2 == 'True' or self.updaterState_2 == 'Auto':
+            self.controller_2.OP.setText(str(self.updaterOP_2))
+        
+        # |-* plot
+        self.v1.addItem(pg.PlotCurveItem(self.dataTime_2, self.dataSP_2, pen='#FFFFFF')) #, name="signal", pen = self.pen, symbol = '+', symbolSize = 5, symbolBrush = 'w')
+        self.v1.addItem(pg.PlotCurveItem(self.dataTime_2, self.dataPV_2, pen='#FF007F'))
+##        self.v2up.addItem(pg.PlotCurveItem(self.dataTime_2, self.dataOP_2, pen='#FEFE2E'))
+        self.v1Error.addItem(pg.PlotCurveItem(self.dataTime_2, self.dataError_2, pen='#FFFFFF'))
+        self.v1Error.addItem(pg.PlotCurveItem(self.dataTime_2, self.errHor_2, pen='#00FF00'))
+
+        if self.graphicState_2 != True and len(self.dataTime_2) >= 11:
+            if self.dataTime_2[-1] != self.span_2:
+                self.v1.setXRange(self.dataTime_2[-1] - self.span_2, self.dataTime_2[-1], padding = 0.3)
+                self.v1.setYRange(min(self.dataPV_2[-self.span_2:-1]), max(self.dataPV_2[-self.span_2:-1]), padding = 0.1)
+##                self.v2.setYRange(min(-5,min(self.dataOP[-self.span:-1])), max(105, max(self.dataOP[-self.span:-1])), padding = 0.1)
+                self.v1Error.setYRange(min(self.dataError_2[-self.span_2:-1]),max(self.dataError_2[-self.span_2:-1]), padding = 0.1)
 
     def setParam(self, signal, obj):
-
         if obj.SP.text() !='' and obj.PV.text() !='' and obj.OP.text() !='':
             d = {"state": obj.modeButton.text(),"SP": float(obj.SP.text()),"PV": float(obj.PV.text()),"OP": float(obj.OP.text())} 
             signal.emit(d)
         
 
-    def setConst(self, signal):
-        if self.intConst_1.K1.text() !='' or self.intConst_1.T1.text() !='' or self.intConst_1.T2.text() !='':
-            d = {"K1": float(self.intConst_1.K1.text()), "T1": float(self.intConst_1.T1.text()), "T2": float(self.intConst_1.T2.text()),
-                 "KLIN": float(self.intConst_1.KLIN.text()), "KEXT": float(self.intConst_1.KEXT.text()), "KNL": float(self.intConst_1.KNL.text()),
-                 "NLFM": float(self.intConst_1.NLFM.text()), "NLGAIN": float(self.intConst_1.NLGAIN.text()),"KGAP": float(self.intConst_1.KGAP.text()),
-                 "GAPLO": float(self.intConst_1.GAPLO.text()), "GAPHI": float(self.intConst_1.GAPHI.text())
+    def setConst(self, signal, obj):
+        if obj.K1.text() !='' or obj.T1.text() !='' or obj.T2.text() !='':
+            d = {"K1": float(obj.K1.text()), "T1": float(obj.T1.text()), "T2": float(obj.T2.text()),
+                 "KLIN": float(obj.KLIN.text()), "KEXT": float(obj.KEXT.text()), "KNL": float(obj.KNL.text()),
+                 "NLFM": float(obj.NLFM.text()), "NLGAIN": float(obj.NLGAIN.text()),"KGAP": float(obj.KGAP.text()),
+                 "GAPLO": float(obj.GAPLO.text()), "GAPHI": float(obj.GAPHI.text())
                  }
             signal.emit(d) 
 
-    def setModel(self, signal):
-        if self.intConst_1.Kp.text() !='' and self.intConst_1.Tp.text() !='' and self.intConst_1.Dp.text() !='':
-            d = {"Kp": np.float64(self.intConst_1.Kp.text()), "Tp": np.float64(self.intConst_1.Tp.text()), "Dp": np.float64(self.intConst_1.Dp.text())}
+    def setModel(self, signal, obj):
+        if obj.Kp.text() !='' and obj.Tp.text() !='' and obj.Dp.text() !='':
+            d = {"Kp": np.float64(obj.Kp.text()), "Tp": np.float64(obj.Tp.text()), "Dp": np.float64(obj.Dp.text())}
             signal.emit(d)
         
             
@@ -243,70 +327,143 @@ class mainWindow(QWidget):
         self.graph = pg.GraphicsView()
         self.graph.setWindowTitle('Variables(t)')
         self.graph.show()
-        self.l = pg.GraphicsLayout()
-        self.graph.setCentralWidget(self.l)
-        
-        #v2 and a2 for additional graph and y axis
-        self.a2 = pg.AxisItem('left')
-        self.a2.setRange(-5,15)
-        self.v2 = pg.ViewBox()
-        self.l.addItem(self.a2, row = 2, col = 2, rowspan = 2, colspan = 1)
+        self.mainGL = pg.GraphicsLayout()
+##        self.upper = pg.GraphicsLayout()
+##        self.upperError = pg.GraphicsLayout()
+##        self.lower = pg.GraphicsLayout()
+##        self.lowerError = pg.GraphicsLayout()
+##        self.mainGL.addLayout(self.upper, row=0, col = 2, rowspan =1, colspan = 3)
+##        self.mainGL.addLayout(self.upperError, row=0, col = 6) #, rowspan =  1, colspan = 1)
+##        self.mainGL.addLayout(self.lower, row=2, col = 2, rowspan  = 1, colspan = 3)
+##        self.mainGL.addLayout(self.lowerError, row=2, col = 6) #, rowspan = 1, colspan = 1)
 
-        #v2 and a2 for error axis
-        self.a3 = pg.AxisItem('left')
-        self.a3.setRange(-5,15)
-        self.v3 = pg.ViewBox()
-        self.l.addItem(self.a3, row = 2, col = 1, rowspan = 2, colspan = 1)
+        self.upper = self.mainGL.addLayout(row=0, col = 2, rowspan =1, colspan = 3)
+        self.emptyFiller = self.mainGL.addLayout(row=0, col=3)
+        self.upperError = self.mainGL.addLayout(row=0, col = 6) #, rowspan =  1, colspan = 1)
+        self.lower = self.mainGL.addLayout(row=2, col = 2, rowspan  = 1, colspan = 3)
+        self.emptyFiller = self.mainGL.addLayout(row=2, col=3)
+        self.lowerError = self.mainGL.addLayout(row=2, col = 6) #, rowspan = 1, colspan = 1)
+        
+        self.graph.setCentralWidget(self.mainGL)
+        
+        # v2 and a2 for additional graph and y axis
+        self.a2 = pg.AxisItem('left')
+##        self.a2.setRange(-5,15)
+        self.v2 = pg.ViewBox()
+        self.lower.addItem(self.a2, row = 2, col = 2, rowspan = 2, colspan = 1)
+
+        # cascade
+        self.a2up = pg.AxisItem('left')
+##        self.a2up.setRange(-5,15)
+        self.v2up = pg.ViewBox()
+        self.upper.addItem(self.a2up, row = 2, col = 2, rowspan = 2, colspan = 1)
+
+        # v2 and a2 for error axis
+##        self.a3 = pg.AxisItem('left')
+##        self.a3.setRange(-5,15)
+##        self.v3 = pg.ViewBox()
+##        self.upperError.addItem(self.a3, row = 2, col = 1, rowspan = 2, colspan = 1)
+        # cascade
+##        self.a3up = pg.AxisItem('left')
+##        self.a3up.setRange(-5,15)
+##        self.v3up = pg.ViewBox()
+##        self.lowerError.addItem(self.a3up, row = 2, col = 1, rowspan = 2, colspan = 1)
         
         # blank x-axis to alignment
-        ax = pg.AxisItem(orientation='bottom')
-        ax.setPen('#000000')
-        pos = (3,3)
-        self.l.addItem(ax, *pos)
+##        ax = pg.AxisItem(orientation='bottom')
+##        ax.setPen('#000000')
+##        pos = (3,3)
+##        self.lower.addItem(ax, *pos)
         
-        #v1 is the main plot, it has its own box
+        # v1 is the main plot, it has its own box
         self.p1 = pg.PlotItem()
         self.v1 = self.p1.vb
-        self.l.addItem(self.p1, row = 2, col = 3, rowspan = 2, colspan = 1)
+        self.lower.addItem(self.p1, row = 2, col = 3, rowspan = 2, colspan = 1)
+        self.p1Error = pg.PlotItem()
+        self.v1Error = self.p1Error.vb
+        self.lowerError.addItem(self.p1Error, row = 0, col = 0) #, rowspan = 2, colspan = 1)
+        # cascade
+        self.p1up = pg.PlotItem()
+        self.v1up = self.p1up.vb
+        self.upper.addItem(self.p1up, row = 2, col = 3, rowspan = 2, colspan = 1)
+        self.p1upError = pg.PlotItem()
+        self.v1upError = self.p1upError.vb
+        self.upperError.addItem(self.p1upError, row = 0, col = 0) #, rowspan = 2, colspan = 1)
 
         # time axis
         self.timeAxis = pg.DateAxisItem(orientation='bottom')
         self.p1.setAxisItems({'bottom': self.timeAxis})
+        self.timeAxisError = pg.DateAxisItem(orientation='bottom')
+        self.p1Error.setAxisItems({'bottom': self.timeAxisError})
+        # cascade
+        self.timeAxisUp = pg.DateAxisItem(orientation='bottom')
+        self.p1up.setAxisItems({'bottom': self.timeAxisUp})
+        self.timeAxisUpError = pg.DateAxisItem(orientation='bottom')
+        self.p1upError.setAxisItems({'bottom': self.timeAxisUpError})
 
         # Mouse interaction
         self.graph.scene().sigMouseClicked.connect(self._on_mouse_clicked)
         
         #grid
         self.p1.showGrid(x=True, y=True)
+        
+        self.p1up.showGrid(x=True, y=True)
+        
         #Link between v1 and v2
-        self.l.scene().addItem(self.v2)
+        self.lower.scene().addItem(self.v2)
         self.a2.linkToView(self.v2)
         self.v2.setXLink(self.v1)
+        
+        self.upper.scene().addItem(self.v2up)
+        self.a2up.linkToView(self.v2up)
+        self.v2up.setXLink(self.v1up)
+        
         #Link between v3 and v2 ad v1
-        self.l.scene().addItem(self.v3)
-        self.a3.linkToView(self.v3)
-        self.v3.setXLink(self.v1)
+##        self.lower.scene().addItem(self.v3)
+##        self.a3.linkToView(self.v3)
+##        self.v3.setXLink(self.v1)
+        
+##        self.upper.scene().addItem(self.v3up)
+##        self.a3up.linkToView(self.v3up)
+##        self.v3up.setXLink(self.v1up)
+        
         #Axis label
-        self.p1.getAxis('left').setLabel('SP, PV', color='#2E2EFE')
+        self.p1.getAxis('left').setLabel('SP vs PV',color='#FFFFFF')
         self.a2.setLabel('OP', color='#FEFE2E')
-        self.a3.setLabel('Error', color='#FE2E2E')
+##        self.a3.setLabel('Error', color='#FEFE2E')
         self.v1.enableAutoRange(axis= pg.ViewBox.XYAxes, enable=True)
         self.v1.sigResized.connect(self.updateViews)
         self.updateViews()
+
+        self.p1Error.getAxis('left').setLabel('Error', color = '#00FF00')
+        self.v1Error.enableAutoRange(axis=pg.ViewBox.XYAxes, enable = True)
+
+        self.p1up.getAxis('left').setLabel('SP vs PV',color='#FFFFFF')
+        self.a2up.setLabel('OP', color='#FEFE2E')
+##        self.a3up.setLabel('Error', color='#FE2E2E')
+        self.v1up.enableAutoRange(axis= pg.ViewBox.XYAxes, enable=True)
+        self.v1up.sigResized.connect(self.updateViews)
+        self.updateViews()
+
+        self.p1upError.getAxis('left').setLabel('Error', color = '#00FF00')
+        self.v1upError.enableAutoRange(axis=pg.ViewBox.XYAxes, enable = True)
+
 
         return self.graph
     
     def updateViews(self):
         self.v2.setGeometry(self.v1.sceneBoundingRect())
-        self.v3.setGeometry(self.v1.sceneBoundingRect())
+        self.v2up.setGeometry(self.v1up.sceneBoundingRect())
 
         return
     
     def _on_mouse_clicked(self, event):
         self.graphicState = True
+        self.graphicState2 = True
         if event.double():
             self.graphicState = False
-        return self.graphicState
+            self.graphicState2 = True
+        return self.graphicState, self.graphicState2
 
 
 class mainInput(QWidget):
@@ -318,6 +475,7 @@ class mainInput(QWidget):
         self.labelPV    = None
         self.labelOP    = None
         self.modeButton = None
+        self.casButton  = None
         self.SP         = None
         self.PV         = None
         self.OP         = None
@@ -495,13 +653,16 @@ class mainInput(QWidget):
         
         return self.dbmodelGroup
 
-    def controlConfig(self):
+    def controlConfig(self, casButtonAdd = False):
         self.controlGroup = QGroupBox()
         self.controlGroup.setCheckable(True)
         self.controlGroup.setChecked(True)
         
         self.modeButton = QPushButton("Man")
         self.modeButton.setCheckable(True)
+
+        self.casButton = QPushButton("Single")
+        self.casButton.setCheckable(True)
         
         self.labelSP = QLabel("SP")
         self.labelPV = QLabel("PV")
@@ -524,6 +685,8 @@ class mainInput(QWidget):
         subLayout3.addWidget(self.OP)
         
         layout.addWidget(self.modeButton)
+        if casButtonAdd == True:
+            layout.addWidget(self.casButton)
         layout.addLayout(subLayout1)
         layout.addLayout(subLayout2)
         layout.addLayout(subLayout3)
@@ -537,6 +700,7 @@ class controlComplex(QThread):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.state          = False
+        self.cascade        = False
         self.SP             = 1
         self.PV             = 0
         self.OP             = 0
@@ -581,6 +745,14 @@ class controlComplex(QThread):
         else:
             instance.setText('Man')
         return self.state
+
+    def casCall(self, instance):
+        self.cascade = instance.isChecked()
+        if instance.isChecked():
+            instance.setText('Cascade')
+        else:
+            instance.setText('Single')
+        return self.cascade
     
     # P and ID controller
     def run(self):
@@ -629,20 +801,20 @@ class controlComplex(QThread):
             print()
             print(self.SP)
             print()
-##            print(self.K1)
-##            print(self.T1)
-##            print(self.T2)
-##            print(self.KLIN)
-##            print(self.KEXT)
-##            print(self.KNL)
-##            print(self.NLFM)
-##            print(self.NLGAIN)
-##            print(self.KGAP)
-##            print(self.GAPLO)
-##            print(self.GAPHI)
-##            print("model")
-##            print(self.Kp)
-##            print(self.Tp)
+            print(self.K1)
+            print(self.T1)
+            print(self.T2)
+            print(self.KLIN)
+            print(self.KEXT)
+            print(self.KNL)
+            print(self.NLFM)
+            print(self.NLGAIN)
+            print(self.KGAP)
+            print(self.GAPLO)
+            print(self.GAPHI)
+            print("model")
+            print(self.Kp)
+            print(self.Tp)
 #!()
             # signal container
             pidOne.SP = self.SP
@@ -851,10 +1023,12 @@ class controlComplex(QThread):
         self.Tp             = param["Tp"]
         self.deadTime       = param["Dp"]
 
-
+##    def cascadeRec(self, sp, pv, op, err, n, sts):
+##
+##        
 
 ##class controlComplex2(QThread):
-##    signalBack_1 = Signal(float, float, float, float, float, str)
+##    signalBack_2 = Signal(float, float, float, float, float, str)
 ##    
 ##    def __init__(self, parent = None):
 ##        super().__init__(parent)
@@ -951,20 +1125,20 @@ class controlComplex(QThread):
 ##            print()
 ##            print(self.SP)
 ##            print()
-####            print(self.K1)
-####            print(self.T1)
-####            print(self.T2)
-####            print(self.KLIN)
-####            print(self.KEXT)
-####            print(self.KNL)
-####            print(self.NLFM)
-####            print(self.NLGAIN)
-####            print(self.KGAP)
-####            print(self.GAPLO)
-####            print(self.GAPHI)
-####            print("model")
-####            print(self.Kp)
-####            print(self.Tp)
+##            print(self.K1)
+##            print(self.T1)
+##            print(self.T2)
+##            print(self.KLIN)
+##            print(self.KEXT)
+##            print(self.KNL)
+##            print(self.NLFM)
+##            print(self.NLGAIN)
+##            print(self.KGAP)
+##            print(self.GAPLO)
+##            print(self.GAPHI)
+##            print("model")
+##            print(self.Kp)
+##            print(self.Tp)
 ###!()
 ##            # signal container
 ##            pidOne.SP = self.SP
@@ -1066,7 +1240,7 @@ class controlComplex(QThread):
 ##                    self.PVlast = PVlast
 ##                    self.state = self.state
 ##                    
-##                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
+##                    self.signalBack_2.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
 ##
 ###!()
 ####                    print(self.SP)
@@ -1134,7 +1308,7 @@ class controlComplex(QThread):
 ##                    self.PV = PVnew
 ##                    self.state = self.state
 ##                    
-##                    self.signalBack_1.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
+##                    self.signalBack_2.emit(self.SP, self.PV, self.OP, pidOne.error, self.startTime, self.state)
 ##                    time.sleep(self.sample_time)
 ##                    
 ##
