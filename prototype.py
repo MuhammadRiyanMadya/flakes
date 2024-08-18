@@ -113,11 +113,17 @@ class mainWindow(QWidget):
         #-* Backgroudn Actions
         self.complex_1 = controlComplex(self)
         self.complex_1.uConnected = False
-
+        self.complex_1.Kp = 2400
+        self.complex_1.PVDesign = 6000
+        self.complex_1.PVEUHI = 5000
+        self.complex_1.PVEULO = 0
+        
+        
         self.complex_2 = controlComplex(self)
-        self.complex_2.SPConnected = True
         self.complex_2.dexpansion = 3
         self.complex_2.sample_time = 1
+        self.complex_2.DBActivated  = True
+        self.complex_2.dbmodel, self.complex_2.dblength = self.complex_2.DB.modelDFile(r'C:\Users\mrm\Downloads\MMR\Aptcon\Flakes\dtbnmodel.csv')
 
 
         # |-* Intermediete Paramaters Passing 
@@ -239,6 +245,7 @@ class mainWindow(QWidget):
         self.dataSP.append(sp)
         self.dataPV.append(pv)
         self.dataOP.append(op)
+        print(op)
         self.dataError.append(round(err,4))
         if err == 0:
             self.errHor.append(0)
@@ -711,6 +718,7 @@ class controlComplex(QThread):
         super().__init__(parent)
         self.state          = False
         self.cascade        = False
+        self.DBActivated    = False
         self.SP             = 1
         self.PV             = 0
         self.OP             = 0
@@ -749,8 +757,9 @@ class controlComplex(QThread):
 
         self.OPCas          = None
         self.uCas           = None
-        self.SPConnected    = False
         self.uConnected     = False
+        self.dbmodel        = self.Kp
+        self.DB             = flakes.disturbance()
         
     def modeCall(self, instance):
         self.state = instance.isChecked()
@@ -772,8 +781,7 @@ class controlComplex(QThread):
     def run(self):
         self.isRunning = True
         pidOne = flakes.standard(self.sample_time)
-        modelD = flakes.disturbance()
-        d, didl = modelD.modelDFile(r'C:\Users\ssv\Documents\MRM\Flakes\DmodelKp2.csv')
+        
         while self.isRunning:
             # signal updater  
             self.state = str(self.state)
@@ -901,12 +909,12 @@ class controlComplex(QThread):
 #!()
                     #Disturbance model - noise constructor
 
-                    if True:
+                    if self.DBActivated == True:
                         self.j += 1
                         if (self.j - i) == self.dexpansion:
-                            self.Kp = d[self.didx]
+                            self.Kp = self.dbmodel[self.didx]
                             self.didx += 1
-                            if self.didx == (len(d)-2):
+                            if self.didx == (len(self.dbmodel)-2):
                                 self.didx = 0
                             self.j = 0
                         else:
@@ -926,6 +934,9 @@ class controlComplex(QThread):
 ##                    print("PVnew controller OUT",PVnew)
 #!()
                     self.OP = self.bufferOP[-1]
+                    print()
+                    print(self.OP)
+                    print()
                     self.PV = PVnew
                     self.PVlast = PVlast
                     self.state = self.state
@@ -972,12 +983,12 @@ class controlComplex(QThread):
 #!()
                     # disturbance model - noise constructor
                     
-                    if True:
+                    if self.DBActivated == True:
                         self.j += 1
                         if (self.j - i) == self.dexpansion:
-                            self.Kp = d[self.didx]
+                            self.Kp = self.dbmodel[self.didx]
                             self.didx += 1
-                            if self.didx == (len(d)-2):
+                            if self.didx == (len(self.dbmodel)-2):
                                 self.didx = 0
                             self.j = 0
                         else:
