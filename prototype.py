@@ -120,10 +120,10 @@ class mainWindow(QWidget):
         
         
         self.complex_2 = controlComplex(self)
-        self.complex_2.dexpansion = 3
-        self.complex_2.sample_time = 1
-        self.complex_2.DBActivated  = True
-        self.complex_2.dbmodel, self.complex_2.dblength = self.complex_2.DB.modelDFile(r'C:\Users\mrm\Downloads\MMR\Aptcon\Flakes\dtbnmodel.csv')
+##        self.complex_2.dexpansion = 5
+        self.complex_2.sample_time = 0.2
+##        self.complex_2.DBActivated  = True
+##        self.complex_2.dbmodel, self.complex_2.dblength = self.complex_2.DB.modelDFile(r'C:\Users\ssv\Documents\MRM\Flakes\DmodelKp2.csv')
 
 
         # |-* Intermediete Paramaters Passing 
@@ -253,6 +253,20 @@ class mainWindow(QWidget):
             self.errHor.append(0)    
         self.dataTime.append(n)
 
+        SPANBUF = 20
+        STAGBUF = SPANBUF - 5
+        if len(self.dataTime) >= 2:
+            delTime = self.dataTime[-1] - self.dataTime[0]
+            if delTime >= SPANBUF:
+                del self.dataSP[0:STAGBUF]
+                del self.dataPV[:STAGBUF]
+                del self.dataOP[:STAGBUF]
+                del self.dataError[:STAGBUF]
+                del self.dataSP[:STAGBUF]
+                del self.dataTime[:STAGBUF+5]
+                print("runnin")
+        print(len(self.dataTime))
+        print(len(self.dataSP))
         # |-* updater display
         self.updaterPV = round(pv,6)
         self.updaterOP = round(op,6)
@@ -292,6 +306,19 @@ class mainWindow(QWidget):
             self.errHor_2.append(0)    
         self.dataTime_2.append(n)
 
+        SPANBUF = 20
+        STAGBUF = SPANBUF - 5
+        if len(self.dataTime) >= 2:
+            delTime = self.dataTime[-1] - self.dataTime[0]
+            if delTime >= SPANBUF:
+                del self.dataSP_2[0:STAGBUF]
+                del self.dataPV_2[:STAGBUF]
+                del self.dataOP_2[:STAGBUF]
+                del self.dataError_2[:STAGBUF]
+                del self.dataSP_2[:STAGBUF]
+                del self.dataTime_2[:STAGBUF+5]
+                print("runnin")
+            
         # |-* updater display
         self.updaterPV_2 = round(pv,6)
         self.updaterOP_2 = round(op,6)
@@ -746,8 +773,8 @@ class controlComplex(QThread):
         self.uDesign        = 915.33
         self.PVDesign       = 22
 
-        self.OPEUHI           = 100
-        self.OPEULO           = 0
+        self.OPEUHI         = 100
+        self.OPEULO         = 0
         self.PVEUHI         = 2.5
         self.PVEULO         = 0
 
