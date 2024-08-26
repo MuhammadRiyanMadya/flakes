@@ -3,6 +3,7 @@ import numpy as np
 import collections
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 
 
 class dataExt():
@@ -28,77 +29,106 @@ class dataExt():
 
             return npd
         
-    def dataV(self, npd):
-        fig = plt.figure(1)
-        num = npd.shape[1]
-##        for i in range(1,num):
-##            plt.plot(npd[:,0],npd[:,i])
+    def dataV(self, npd, valveLabel: str):
+##        fig = plt.figure(1)
+##        num = npd.shape[1]
+####        for i in range(1,num):
+####            plt.plot(npd[:,0],npd[:,i])
+##
+##        plt.plot(npd[:,0], npd[:,1])
+##        plt.show()
 
-        plt.plot(npd[:,0], npd[:,1])
+        fig, ax1 = plt.subplots()
+
+        ax1.plot(npd[:,0], npd[:,1], linestyle = 'dashed',linewidth = 0.5, color = 'blue', label = valveLabel, marker = '.', markerfacecolor ='yellow', markersize = 7)
+        ax1.set_xlabel('OP, %')
+        ax1.set_ylabel('H2 kg/h', color = 'b')
+        ax1.tick_params('y', colors='b')
+        ax1.xaxis.set_major_locator(MultipleLocator(1))
+##        ax1.yaxis.set_major_locator(MultipleLocator(0.025))
+
+        ax2 = ax1.twinx()
+
+        ax2.plot(npd[:,0], npd[:,2], label = 'PPM', linewidth = 0.5,color = 'red', linestyle ='dashed', marker ='.', markerfacecolor =  'yellow', markersize = 7)
+        ax2.set_ylabel('PPM', color='r')
+        ax2.tick_params('y', colors = 'r')
+
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+
+        lines = lines1 + lines2
+        labels = labels1 + labels2
+
+        plt.legend(lines, labels, loc = 'upper right')
+
+        plt.title(f'{valveLabel} Valve Trend', fontsize = 16, fontweight = 'bold')
         plt.show()
 
-myD = dataExt()
+    def largeExt(self,path, fromFolder = False):
+        if fromFolder == False:
+            self.df = pd.read_excel(path, sheet_name = 1)
 
-npd = myD.excelExt(r"C:\Users\mrm\Downloads\MMR\Aptcon\Flakes\myData1.xlsx")
-plots = myD.dataV(npd)
+            FC201B_PV = self.dataBrowser(self.df, '201 B')
+            FC201B_OP = self.dataBrowser(self.df, '201 B', opIdx = 1)
+            AC201_1 = self.dataBrowser(self.df, '201-1', '201 - 1', '201 -1')
 
-##from bokeh.models import Range1d, LinearAxis
-##from bokeh.plotting import figure
-##from bokeh.io import show
+            mydict = {'OP': FC201B_OP, 'PV': FC201B_PV, 'PPM': AC201_1}
+
+            self.dataPool('dataExperiment.xlsx', **mydict)
+            
+
+    def dataBrowser(self, file: pd.DataFrame, *args, opIdx = 0):
+        dataBlock = np.array([])
+        for i in args:
+            IdxKey = np.where(file == i)
+            if len(IdxKey[0]) != 0:
+                elemNum = len(IdxKey[0])
+                if elemNum > 2:
+                    print("WARNING: Three identical identifiers are FOUND !")
+                FCrow = IdxKey[0][-1]
+                FCcol = IdxKey[1][-1]
+                for i in range(1,5):
+                    dt = file.iloc[FCrow+i, FCcol+opIdx]
+                    if isinstance(dt, str):
+                        dt = -1
+                    dataBlock = np.append(dataBlock,dt)
+        dataBlock = dataBlock[~np.isnan(dataBlock)]
+##            if len(dataBlock) == 3)
+
+        return dataBlock
+
+    def dataPool (self, filename, **kwargs):
+        data_1 = kwargs['OP']
+        data_2 = kwargs['PV']
+        data_3 = kwargs['PPM']
+        datadf_input = pd.DataFrame(np.vstack((data_1, data_2, data_3)).T, columns = list(kwargs.keys()))
+
+        try:
+            datadf_excel = pd.read_excel(filename)
+            lastrow = len(datadf_excel.iloc[:,0])
+        except Exception as e:
+            with pd.ExcelWriter(filename) as writer:
+                datadf_input.to_excel(writer, header = None, index = False)
+            datadf_excel = pd.read_excel(filename)
+            lastrow = len(datadf_excel.iloc[:,0])
+
+        with pd.ExcelWriter(filename,
+                            mode = 'a',
+                            if_sheet_exists = 'overlay'
+                            ) as writer:
+            datadf_input.to_excel(writer, header = None, index = False, startrow = lastrow + 1)
+
+        
+            
+        
+        
+myd = dataExt()
+myd.largeExt(r'C:\Users\mrm\Downloads\MMR\Aptcon\Flakes\largeData Extraction Lab\LST_1\LST~1\01~JAN\03.XLS')
+
+
+
+##myD = dataExt()
 ##
-##fig = figure()
-##
-### Define x-axis
-##fig.xaxis.axis_label = 'Date'
-##
-### Define 1st LHS y-axis
-##fig.yaxis.axis_label = 'Pressure [barg]'
-##fig.y_range = Range1d(start=0, end=200)
-##
-### Create 2nd LHS y-axis
-##fig.extra_y_ranges['temp'] = Range1d(start=0, end=50)
-##fig.add_layout(LinearAxis(y_range_name='temp', axis_label='Temperature [°C]'), 'left')
-##
-### Create 1st RHS y-axis
-##fig.extra_y_ranges['lflow'] = Range1d(start=0, end=50000)
-##fig.add_layout(LinearAxis(y_range_name='lflow', axis_label='Liquid Flowrate [bbl/day]'), 'right')
-##
-### Create 2nd RHS y-axis
-##fig.extra_y_ranges['gflow'] = Range1d(start=0, end=50)
-##fig.add_layout(LinearAxis(y_range_name='gflow', axis_label='Gas Flowrate [MMscf/day]'), 'right')
-##
-##fig.line(
-##    x = [0,1,2,3,4,5],
-##    y = [80,88,87,70,77,82],
-##    legend_label = 'Pressure',
-##    color = 'purple'
-##)
-##
-##fig.line(
-##    x = [0,1,2,3,4,5],
-##    y = [5,6,5,5,5,4],
-##    legend_label = 'Temperature',
-##    y_range_name = 'temp',
-##    color = 'red'
-##)
-##
-##fig.line(
-##    x = [0,1,2,3,4,5],
-##    y = [10000,10100,10000,10150,9990,10000],
-##    legend_label = 'Liquid Flowrate',
-##    y_range_name = 'lflow',
-##    color = 'orange'
-##)
-##
-##
-##fig.line(
-##    x = [0,1,2,3,4,5],
-##    y = [35,37,40,41,40,36],
-##    legend_label = 'Gas Flowrate',
-##    y_range_name = 'gflow',
-##    color = 'green'
-##)
-##
-##fig.toolbar_location = 'above'
-##
-##show(fig)
+##npd = myD.excelExt(r"C:\Users\mrm\Downloads\MMR\Aptcon\Flakes\FC202A.xlsx")
+##plots = myD.dataV(npd, 'FC202A')
+
